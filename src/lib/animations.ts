@@ -1,12 +1,12 @@
 import type { AnimationStyle, PunctuationKind } from "@/types/slides";
 
 export const animationStyles: Record<AnimationStyle, { label: string; className: string; description: string }> = {
-  fade: { label: "Fade + Rise", className: "animate-fade-rise", description: "Soft fade with upward drift" },
-  punch: { label: "Punch", className: "animate-punch", description: "Scaled punch-in for emphasis" },
-  shake: { label: "Shake", className: "animate-question", description: "Gentle shake for curiosity" },
-  commaSlide: { label: "Comma Slide", className: "animate-comma", description: "Quick slide + fade" },
-  slowFade: { label: "Slow Fade", className: "animate-slow-fade", description: "Lingering fade for ellipsis" },
-  period: { label: "Period", className: "animate-period", description: "Clean entrance for statements" },
+  fade: { label: "Fade + Rise", className: "animate-fade-rise", description: "Blurred lift with a soft hover" },
+  punch: { label: "Punch", className: "animate-punch", description: "Impactful scale pop with rebound" },
+  shake: { label: "Shake", className: "animate-question", description: "Curious wobble with light tilt" },
+  commaSlide: { label: "Comma Slide", className: "animate-comma", description: "Diagonal glide that settles" },
+  slowFade: { label: "Slow Fade", className: "animate-slow-fade", description: "Suspended dissolve for ellipsis" },
+  period: { label: "Period", className: "animate-period", description: "Curtain-lift reveal for statements" },
 };
 
 export const defaultAnimationForPunctuation: Record<PunctuationKind, AnimationStyle> = {
