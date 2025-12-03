@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -14,7 +14,7 @@ import {
 import { animationStyles, resolveAnimationStyle } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import type { Slide, SlideSettings } from "@/types/slides";
-import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { Maximize2, Minimize2, Pause, Play, SkipBack, SkipForward } from "lucide-react";
 
 interface ScriptPlayerProps {
   slides: Slide[];
@@ -40,6 +40,8 @@ export function ScriptPlayer({
   onOpenSettings,
   onUpdateSettings,
 }: ScriptPlayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const activeSlide = slides[currentIndex];
   const activeSettings = activeSlide ? slideSettings[activeSlide.id] ?? {} : {};
   const resetDurationDelta = activeSlide
@@ -60,6 +62,23 @@ export function ScriptPlayer({
 
     return () => clearTimeout(timer);
   }, [activeSlide, currentIndex, isPlaying, onIndexChange, onPlayingChange, slideSettings, slides.length]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (document.fullscreenElement === containerRef.current) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, []);
 
   const goPrev = () => {
     if (currentIndex > 0) {
@@ -92,8 +111,24 @@ export function ScriptPlayer({
     onUpdateSettings(activeSlide.id, { animationStyle: style });
   };
 
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    if (isFullscreen) {
+      await document.exitFullscreen();
+    } else {
+      await containerRef.current.requestFullscreen();
+    }
+  };
+
   return (
-    <div className="relative h-full flex items-center justify-center bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden">
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative h-full flex items-center justify-center bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden",
+        isFullscreen && "h-screen w-screen",
+      )}
+    >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.04),transparent_25%)]" />
 
       {activeSlide ? (
@@ -213,6 +248,14 @@ export function ScriptPlayer({
           disabled={currentIndex >= slides.length - 1}
         >
           <SkipForward className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="secondary"
+          className="bg-white/10 text-white"
+          onClick={toggleFullscreen}
+          aria-pressed={isFullscreen}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />} Fullscreen
         </Button>
         {activeSlide && (
           <Button variant="ghost" className="text-white/80" onClick={() => onOpenSettings(activeSlide.id)}>
