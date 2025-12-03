@@ -8,11 +8,24 @@
 import { createRoot } from "react-dom/client";
 import { StrictMode } from "react";
 import { App } from "./App";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+
+function RoutedApp() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/fullscreen" element={<App fullscreenOnly />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
 
 const elem = document.getElementById("root")!;
 const app = (
   <StrictMode>
-    <App />
+    <RoutedApp />
   </StrictMode>
 );
 

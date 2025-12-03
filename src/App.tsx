@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./index.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +17,11 @@ const STARTER_TEXT = `안녕! 여기는 움직이는 텍스트 무대.
 느리게 이어지는 말...
 마침표로 마무리.`;
 
-export function App() {
+interface AppProps {
+  fullscreenOnly?: boolean;
+}
+
+export function App({ fullscreenOnly = false }: AppProps) {
   const [rawText, setRawText] = useState<string>(STARTER_TEXT);
   const [slides, setSlides] = useState<Slide[]>(() => parseTextToSlides(STARTER_TEXT));
   const [slideSettings, setSlideSettings] = useState<Record<string, SlideSettings>>({});
@@ -36,6 +40,13 @@ export function App() {
     setMode("play");
   };
 
+  useEffect(() => {
+    if (fullscreenOnly) {
+      setMode("play");
+      setIsPlaying(true);
+    }
+  }, [fullscreenOnly]);
+
   const handleSettingsChange = (id: string, values: SlideSettings) => {
     setSlideSettings(prev => ({ ...prev, [id]: { ...prev[id], ...values } }));
   };
@@ -52,23 +63,27 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/50 backdrop-blur-sm">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/60">Typography motion lab</p>
-          <h1 className="text-xl font-semibold">Text Player</h1>
-        </div>
-        <Button variant="ghost" onClick={handleReset} className="gap-2 text-white/80 hover:text-white">
-          <RefreshCcw className="h-4 w-4" /> Reset to edit
-        </Button>
-      </header>
+      {!fullscreenOnly && (
+        <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/50 backdrop-blur-sm">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/60">Typography motion lab</p>
+            <h1 className="text-xl font-semibold">Text Player</h1>
+          </div>
+          <Button variant="ghost" onClick={handleReset} className="gap-2 text-white/80 hover:text-white">
+            <RefreshCcw className="h-4 w-4" /> Reset to edit
+          </Button>
+        </header>
+      )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <ThumbnailsStrip
-          slides={slides}
-          currentIndex={currentIndex}
-          onSelect={handleSelectSlide}
-          onOpenSettings={setSettingsTarget}
-        />
+        {!fullscreenOnly && (
+          <ThumbnailsStrip
+            slides={slides}
+            currentIndex={currentIndex}
+            onSelect={handleSelectSlide}
+            onOpenSettings={setSettingsTarget}
+          />
+        )}
 
         <div className="flex-1 relative">
           <ScriptPlayer
@@ -84,25 +99,29 @@ export function App() {
         </div>
       </div>
 
-      <Card
-        className={`border-white/10 bg-black/60 backdrop-blur-md transition-all duration-500 sticky bottom-0`}
-      >
-        <CardContent className="p-0">
-          <TextEditor
-            value={rawText}
-            onChange={setRawText}
-            onTransform={handleTransform}
-            isCollapsed={mode === "play"}
-          />
-        </CardContent>
-      </Card>
+      {!fullscreenOnly && (
+        <Card
+          className={`border-white/10 bg-black/60 backdrop-blur-md transition-all duration-500 sticky bottom-0`}
+        >
+          <CardContent className="p-0">
+            <TextEditor
+              value={rawText}
+              onChange={setRawText}
+              onTransform={handleTransform}
+              isCollapsed={mode === "play"}
+            />
+          </CardContent>
+        </Card>
+      )}
 
-      <SlideSettingsPanel
-        slide={activeSlide?.id === settingsTarget ? activeSlide : slides.find(s => s.id === settingsTarget) ?? null}
-        settings={settingsTarget ? slideSettings[settingsTarget] : undefined}
-        onClose={() => setSettingsTarget(null)}
-        onUpdate={values => settingsTarget && handleSettingsChange(settingsTarget, values)}
-      />
+      {!fullscreenOnly && (
+        <SlideSettingsPanel
+          slide={activeSlide?.id === settingsTarget ? activeSlide : slides.find(s => s.id === settingsTarget) ?? null}
+          settings={settingsTarget ? slideSettings[settingsTarget] : undefined}
+          onClose={() => setSettingsTarget(null)}
+          onUpdate={values => settingsTarget && handleSettingsChange(settingsTarget, values)}
+        />
+      )}
     </div>
   );
 }
