@@ -26,6 +26,7 @@ interface ScriptPlayerProps {
   onOpenSettings: (id: string) => void;
   onUpdateSettings: (id: string, values: SlideSettings) => void;
   onShare?: () => void;
+  canEdit?: boolean;
 }
 
 /**
@@ -41,14 +42,22 @@ export function ScriptPlayer({
   onOpenSettings,
   onUpdateSettings,
   onShare,
+  canEdit = true,
 }: ScriptPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [animationCycle, setAnimationCycle] = useState(0);
   const activeSlide = slides[currentIndex];
   const activeSettings = activeSlide ? slideSettings[activeSlide.id] ?? {} : {};
   const resetDurationDelta = activeSlide
     ? activeSlide.baseDuration - (activeSettings.duration ?? activeSlide.baseDuration)
     : 0;
+
+  const previousValuesRef = useRef({
+    index: currentIndex,
+    animation: activeSettings.animationStyle,
+    wasPlaying: isPlaying,
+  });
 
   useEffect(() => {
     if (!isPlaying || !activeSlide) return;
@@ -64,6 +73,23 @@ export function ScriptPlayer({
 
     return () => clearTimeout(timer);
   }, [activeSlide, currentIndex, isPlaying, onIndexChange, onPlayingChange, slideSettings, slides.length]);
+
+  useEffect(() => {
+    const previous = previousValuesRef.current;
+    const animationChanged = previous.animation !== activeSettings.animationStyle;
+    const indexChanged = previous.index !== currentIndex;
+    const startedPlaying = !previous.wasPlaying && isPlaying;
+
+    if (animationChanged || indexChanged || startedPlaying) {
+      setAnimationCycle(cycle => cycle + 1);
+    }
+
+    previousValuesRef.current = {
+      index: currentIndex,
+      animation: activeSettings.animationStyle,
+      wasPlaying: isPlaying,
+    };
+  }, [activeSettings.animationStyle, currentIndex, isPlaying]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -123,6 +149,39 @@ export function ScriptPlayer({
     }
   };
 
+  const slideContent = activeSlide ? (
+    <div
+      className={cn(
+        "relative z-10 flex h-full w-full items-center justify-center p-6 text-center",
+        "transition-colors duration-500",
+      )}
+      style={{
+        backgroundColor: activeSettings.bgColor,
+        color: activeSettings.textColor,
+      }}
+    >
+      <div className="relative max-w-5xl w-full">
+        <div className="absolute inset-0 rounded-3xl bg-white/5 blur-3xl" aria-hidden />
+        <div className="relative rounded-3xl border border-white/10 bg-black/30 px-6 py-8 shadow-2xl backdrop-blur-xl">
+          <p className="text-xs uppercase tracking-[0.3em] text-white/60 mb-4">Slide {currentIndex + 1}</p>
+          <div
+            key={`${activeSlide.id}-${animationCycle}`}
+            className={cn(
+              "text-3xl sm:text-4xl md:text-6xl font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
+              "drop-shadow-[0_15px_35px_rgba(0,0,0,0.45)]",
+              "max-h-[60vh] overflow-y-auto pr-1",
+              resolveAnimationStyle(activeSlide.punctuation, activeSettings.animationStyle),
+            )}
+          >
+            {activeSlide.text}
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <p className="text-white/60 z-10">Write something and press Transform.</p>
+  );
+
   return (
     <div
       ref={containerRef}
@@ -134,94 +193,70 @@ export function ScriptPlayer({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.04),transparent_25%)]" />
 
       {activeSlide ? (
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <div
-              className={cn(
-                "relative z-10 flex h-full w-full items-center justify-center p-6 text-center",
-                "transition-colors duration-500",
-              )}
-              style={{
-                backgroundColor: activeSettings.bgColor,
-                color: activeSettings.textColor,
-              }}
-            >
-              <div className="relative max-w-5xl w-full">
-                <div className="absolute inset-0 rounded-3xl bg-white/5 blur-3xl" aria-hidden />
-                <div className="relative rounded-3xl border border-white/10 bg-black/30 px-6 py-8 shadow-2xl backdrop-blur-xl">
-                  <p className="text-xs uppercase tracking-[0.3em] text-white/60 mb-4">Slide {currentIndex + 1}</p>
-                  <div
-                    className={cn(
-                      "text-3xl sm:text-4xl md:text-6xl font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
-                      "drop-shadow-[0_15px_35px_rgba(0,0,0,0.45)]",
-                      "max-h-[60vh] overflow-y-auto pr-1",
-                      resolveAnimationStyle(activeSlide.punctuation, activeSettings.animationStyle),
-                    )}
-                  >
-                    {activeSlide.text}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </ContextMenuTrigger>
+        canEdit ? (
+          <ContextMenu>
+            <ContextMenuTrigger asChild>{slideContent}</ContextMenuTrigger>
 
-          <ContextMenuContent align="end" className="w-64">
-            <ContextMenuLabel>Slide {currentIndex + 1} 메뉴</ContextMenuLabel>
-            <ContextMenuItem inset onSelect={() => onOpenSettings(activeSlide.id)}>
-              세부 설정 열기
-            </ContextMenuItem>
-            <ContextMenuSeparator />
+            <ContextMenuContent align="end" className="w-64">
+              <ContextMenuLabel>Slide {currentIndex + 1} 메뉴</ContextMenuLabel>
+              <ContextMenuItem inset onSelect={() => onOpenSettings(activeSlide.id)}>
+                세부 설정 열기
+              </ContextMenuItem>
+              <ContextMenuSeparator />
 
-            <ContextMenuSub>
-              <ContextMenuSubTrigger inset>애니메이션 스타일</ContextMenuSubTrigger>
-              <ContextMenuSubContent className="w-56">
-                <ContextMenuItem inset onSelect={() => handleAnimationChange(undefined)}>
-                  자동 (문장부호 기반)
-                </ContextMenuItem>
-                {Object.entries(animationStyles).map(([key, info]) => (
-                  <ContextMenuItem key={key} inset onSelect={() => handleAnimationChange(key as SlideSettings["animationStyle"])}>
-                    <div className="flex flex-col">
-                      <span>{info.label}</span>
-                      <span className="text-xs text-white/60">{info.description}</span>
-                    </div>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>애니메이션 스타일</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuItem inset onSelect={() => handleAnimationChange(undefined)}>
+                    자동 (문장부호 기반)
                   </ContextMenuItem>
-                ))}
-              </ContextMenuSubContent>
-            </ContextMenuSub>
+                  {Object.entries(animationStyles).map(([key, info]) => (
+                    <ContextMenuItem key={key} inset onSelect={() => handleAnimationChange(key as SlideSettings["animationStyle"])}>
+                      <div className="flex flex-col">
+                        <span>{info.label}</span>
+                        <span className="text-xs text-white/60">{info.description}</span>
+                      </div>
+                    </ContextMenuItem>
+                  ))}
+                </ContextMenuSubContent>
+              </ContextMenuSub>
 
-            <ContextMenuSub>
-              <ContextMenuSubTrigger inset>재생 길이</ContextMenuSubTrigger>
-              <ContextMenuSubContent>
-                <ContextMenuItem inset onSelect={() => handleDurationChange(-300)}>
-                  더 빠르게 (-0.3s)
-                </ContextMenuItem>
-                <ContextMenuItem inset onSelect={() => handleDurationChange(300)}>
-                  더 느리게 (+0.3s)
-                </ContextMenuItem>
-                <ContextMenuItem inset onSelect={() => handleDurationChange(resetDurationDelta)}>
-                  기본 길이로 리셋
-                </ContextMenuItem>
-              </ContextMenuSubContent>
-            </ContextMenuSub>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>재생 길이</ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                  <ContextMenuItem inset onSelect={() => handleDurationChange(-300)}>
+                    더 빠르게 (-0.3s)
+                  </ContextMenuItem>
+                  <ContextMenuItem inset onSelect={() => handleDurationChange(300)}>
+                    더 느리게 (+0.3s)
+                  </ContextMenuItem>
+                  <ContextMenuItem inset onSelect={() => handleDurationChange(resetDurationDelta)}>
+                    기본 길이로 리셋
+                  </ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
 
-            <ContextMenuSub>
-              <ContextMenuSubTrigger inset>테마</ContextMenuSubTrigger>
-              <ContextMenuSubContent>
-                <ContextMenuItem inset onSelect={() => handleTheme("#0f172a", "#e2e8f0")}>
-                  딥블루 & 서리빛
-                </ContextMenuItem>
-                <ContextMenuItem inset onSelect={() => handleTheme("#0c0a09", "#f9fafb")}>
-                  다크 앰버
-                </ContextMenuItem>
-                <ContextMenuItem inset onSelect={() => handleTheme("#111827", "#f5f3ff")}>
-                  네온 보라
-                </ContextMenuItem>
-              </ContextMenuSubContent>
-            </ContextMenuSub>
-          </ContextMenuContent>
-        </ContextMenu>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>테마</ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                  <ContextMenuItem inset onSelect={() => handleTheme("#0f172a", "#e2e8f0")}>
+                    딥블루 & 서리빛
+                  </ContextMenuItem>
+                  <ContextMenuItem inset onSelect={() => handleTheme("#0c0a09", "#f9fafb")}>
+                    다크 앰버
+                  </ContextMenuItem>
+                  <ContextMenuItem inset onSelect={() => handleTheme("#111827", "#f5f3ff")}>
+                    네온 보라
+                  </ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+            </ContextMenuContent>
+          </ContextMenu>
+        ) : (
+          slideContent
+        )
       ) : (
-        <p className="text-white/60 z-10">Write something and press Transform.</p>
+        slideContent
       )}
 
       <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
@@ -264,7 +299,7 @@ export function ScriptPlayer({
             <Share2 className="h-4 w-4" /> Share
           </Button>
         )}
-        {activeSlide && (
+        {activeSlide && canEdit && (
           <Button variant="ghost" className="text-white/80" onClick={() => onOpenSettings(activeSlide.id)}>
             Edit slide
           </Button>
