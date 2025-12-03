@@ -30,8 +30,16 @@ export function App({ fullscreenOnly = false }: AppProps) {
   const [mode, setMode] = useState<"edit" | "play">("edit");
   const [settingsTarget, setSettingsTarget] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
+  const [isSharedView, setIsSharedView] = useState(false);
 
   const activeSlide = useMemo(() => slides[currentIndex], [slides, currentIndex]);
+  const canEdit = !fullscreenOnly && !isSharedView;
+
+  useEffect(() => {
+    if (!canEdit) {
+      setSettingsTarget(null);
+    }
+  }, [canEdit]);
 
   const copyToClipboard = useCallback(async (text: string) => {
     if (navigator?.clipboard?.writeText && document.hasFocus()) {
@@ -66,6 +74,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
   };
 
   const handleReset = () => {
+    setIsSharedView(false);
     setMode("edit");
     setIsPlaying(false);
     setSettingsTarget(null);
@@ -154,6 +163,8 @@ export function App({ fullscreenOnly = false }: AppProps) {
     const encoded = params.get("data");
     if (!encoded) return;
 
+    setIsSharedView(true);
+
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const providedKey = hashParams.get("key");
 
@@ -184,7 +195,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col">
-      {!fullscreenOnly && (
+      {canEdit && (
         <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/50 backdrop-blur-sm">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">Typography motion lab</p>
@@ -197,7 +208,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {!fullscreenOnly && (
+        {canEdit && (
           <ThumbnailsStrip
             slides={slides}
             currentIndex={currentIndex}
@@ -217,11 +228,12 @@ export function App({ fullscreenOnly = false }: AppProps) {
             onOpenSettings={setSettingsTarget}
             onUpdateSettings={handleSettingsChange}
             onShare={handleShare}
+            canEdit={canEdit}
           />
         </div>
       </div>
 
-      {!fullscreenOnly && (
+      {canEdit && (
         <Card
           className={`border-white/10 bg-black/60 backdrop-blur-md transition-all duration-500 sticky bottom-0`}
         >
@@ -236,7 +248,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
         </Card>
       )}
 
-      {!fullscreenOnly && (
+      {canEdit && (
         <SlideSettingsPanel
           slide={activeSlide?.id === settingsTarget ? activeSlide : slides.find(s => s.id === settingsTarget) ?? null}
           settings={settingsTarget ? slideSettings[settingsTarget] : undefined}
