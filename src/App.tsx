@@ -35,6 +35,30 @@ export function App({ fullscreenOnly = false }: AppProps) {
 
   const activeSlide = useMemo(() => slides[currentIndex], [slides, currentIndex]);
 
+  const copyToClipboard = useCallback(async (text: string) => {
+    if (navigator?.clipboard?.writeText && document.hasFocus()) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (error) {
+        console.warn("Clipboard API failed, falling back to execCommand", error);
+      }
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return successful;
+  }, []);
+
   const handleTransform = () => {
     const parsed = parseTextToSlides(rawText);
     setSlides(parsed);
@@ -114,13 +138,18 @@ export function App({ fullscreenOnly = false }: AppProps) {
       url.searchParams.set("data", encrypted);
       const shareUrl = `${url.toString()}#key=${encodeURIComponent(passphrase)}`;
 
-      await navigator.clipboard.writeText(shareUrl);
+      const copied = await copyToClipboard(shareUrl);
+      if (!copied) {
+        showToast("클립보드에 복사하지 못했습니다.", "error");
+        return;
+      }
+
       showToast("전체화면 공유 링크를 클립보드에 복사했습니다.");
     } catch (error) {
       console.error(error);
       showToast("링크를 만들지 못했습니다.", "error");
     }
-  }, [rawText, showToast]);
+  }, [copyToClipboard, rawText, showToast]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
