@@ -42,7 +42,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
   }, [canEdit]);
 
   const copyToClipboard = useCallback(async (text: string) => {
-    if (navigator?.clipboard?.writeText && document.hasFocus()) {
+    if (navigator?.clipboard?.writeText && window.isSecureContext) {
       try {
         await navigator.clipboard.writeText(text);
         return true;
@@ -51,18 +51,36 @@ export function App({ fullscreenOnly = false }: AppProps) {
       }
     }
 
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "true");
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "true");
+      textarea.style.position = "fixed";
+      textarea.style.top = "0";
+      textarea.style.left = "0";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
 
-    const successful = document.execCommand("copy");
-    document.body.removeChild(textarea);
-    return successful;
+      const selection = document.getSelection();
+      const originalRange = selection?.rangeCount ? selection.getRangeAt(0) : null;
+
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      const successful = document.execCommand("copy");
+
+      if (selection) {
+        selection.removeAllRanges();
+        if (originalRange) selection.addRange(originalRange);
+      }
+
+      document.body.removeChild(textarea);
+      return successful;
+    } catch (error) {
+      console.error("Clipboard fallback failed", error);
+      return false;
+    }
   }, []);
 
   const handleTransform = () => {
