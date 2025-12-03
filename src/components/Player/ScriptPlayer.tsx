@@ -14,7 +14,7 @@ import {
 import { animationStyles, resolveAnimationStyle } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import type { Slide, SlideSettings } from "@/types/slides";
-import { Maximize2, Minimize2, Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { Maximize2, Minimize2, Pause, Play, Share2, SkipBack, SkipForward } from "lucide-react";
 
 interface ScriptPlayerProps {
   slides: Slide[];
@@ -25,6 +25,7 @@ interface ScriptPlayerProps {
   onPlayingChange: (state: boolean) => void;
   onOpenSettings: (id: string) => void;
   onUpdateSettings: (id: string, values: SlideSettings) => void;
+  onShare?: () => void;
 }
 
 /**
@@ -39,6 +40,7 @@ export function ScriptPlayer({
   onPlayingChange,
   onOpenSettings,
   onUpdateSettings,
+  onShare,
 }: ScriptPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -257,6 +259,11 @@ export function ScriptPlayer({
         >
           {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />} Fullscreen
         </Button>
+        {onShare && (
+          <Button variant="secondary" className="bg-white/10 text-white" onClick={onShare}>
+            <Share2 className="h-4 w-4" /> Share
+          </Button>
+        )}
         {activeSlide && (
           <Button variant="ghost" className="text-white/80" onClick={() => onOpenSettings(activeSlide.id)}>
             Edit slide
