@@ -79,6 +79,7 @@ export function App() {
             isPlaying={isPlaying}
             onPlayingChange={setIsPlaying}
             onOpenSettings={setSettingsTarget}
+            onUpdateSettings={handleSettingsChange}
           />
         </div>
       </div>
