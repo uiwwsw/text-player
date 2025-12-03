@@ -12,12 +12,10 @@ import { RefreshCcw } from "lucide-react";
 import { encryptText, decryptText } from "@/lib/share";
 import { nanoid } from "nanoid";
 
-const STARTER_TEXT = `안녕! 여기는 움직이는 텍스트 무대.
-질문이 있나요?
-감탄사를 날려봐!
-차분히, 한 글자씩.
-느리게 이어지는 말...
-마침표로 마무리.`;
+const STARTER_TEXT = `이 서비스는 텍스트만 입력해도 프레젠테이션을 만들어 줘요.
+원하는 내용을 적고 줄바꿈으로 슬라이드를 나눠 보세요.
+재생 버튼으로 흐름을 확인하고,
+공유 버튼으로 링크를 나눠보세요.`;
 
 interface AppProps {
   fullscreenOnly?: boolean;
