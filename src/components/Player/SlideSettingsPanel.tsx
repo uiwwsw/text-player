@@ -71,16 +71,16 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
         <div className="space-y-2">
           <Label className="text-white/80">Animation style</Label>
           <Select
-            value={settings?.animationStyle ?? ""}
+            value={settings?.animationStyle ?? "auto"}
             onValueChange={value =>
-              onUpdate({ animationStyle: value === "" ? undefined : (value as SlideSettings["animationStyle"]) })
+              onUpdate({ animationStyle: value === "auto" ? undefined : (value as SlideSettings["animationStyle"]) })
             }
           >
             <SelectTrigger className="bg-white/5 border-white/10 text-white">
               <SelectValue placeholder="Auto from punctuation" />
             </SelectTrigger>
             <SelectContent className="bg-neutral-900 border-white/10 text-white">
-              <SelectItem value="">Auto</SelectItem>
+              <SelectItem value="auto">Auto</SelectItem>
               {animationOptions.map(([key, info]) => (
                 <SelectItem key={key} value={key}>
                   <div className="flex flex-col">
