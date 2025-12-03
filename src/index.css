@@ -6,46 +6,104 @@
   }
 
   body {
-    @apply grid place-items-center min-w-[320px] min-h-screen relative m-0 bg-background text-foreground;
+    @apply min-h-screen bg-neutral-950 text-white m-0;
   }
 }
 
-/* cool Bun background animation 😎 */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  opacity: 0.05;
-  background: url("./logo.svg");
-  background-size: 256px;
-  transform: rotate(-12deg) scale(1.35);
-  animation: slide 30s linear infinite;
-  pointer-events: none;
+@layer utilities {
+  .animate-fade-rise {
+    animation: fadeRise 0.9s ease both;
+  }
+  .animate-punch {
+    animation: punchIn 0.7s ease both;
+  }
+  .animate-question {
+    animation: shake 0.8s ease both;
+  }
+  .animate-comma {
+    animation: commaSlide 0.7s ease both;
+  }
+  .animate-slow-fade {
+    animation: slowFade 1.6s ease both;
+  }
+  .animate-period {
+    animation: periodEnter 0.9s ease both;
+  }
 }
 
-@keyframes slide {
+@keyframes fadeRise {
   from {
-    background-position: 0 0;
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
   }
   to {
-    background-position: 256px 224px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes spin {
+@keyframes punchIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) rotate(-2deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05) rotate(1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes commaSlide {
   from {
-    transform: rotate(0);
+    opacity: 0;
+    transform: translateY(20px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (prefers-reduced-motion) {
-  *,
-  ::before,
-  ::after {
-    animation: none !important;
+@keyframes slowFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes periodEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
