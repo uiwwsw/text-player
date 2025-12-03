@@ -186,124 +186,134 @@ export function ScriptPlayer({
     <div
       ref={containerRef}
       className={cn(
-        "relative h-full flex items-center justify-center bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden",
+        "relative h-full bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden",
         isFullscreen && "h-screen w-screen",
       )}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.04),transparent_25%)]" />
 
-      {activeSlide ? (
-        canEdit ? (
-          <ContextMenu>
-            <ContextMenuTrigger asChild>{slideContent}</ContextMenuTrigger>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-full h-full flex items-center justify-center">
+          {activeSlide ? (
+            canEdit ? (
+              <ContextMenu>
+                <ContextMenuTrigger asChild>{slideContent}</ContextMenuTrigger>
 
-            <ContextMenuContent align="end" className="w-64">
-              <ContextMenuLabel>Slide {currentIndex + 1} 메뉴</ContextMenuLabel>
-              <ContextMenuItem inset onSelect={() => onOpenSettings(activeSlide.id)}>
-                세부 설정 열기
-              </ContextMenuItem>
-              <ContextMenuSeparator />
+                <ContextMenuContent align="end" className="w-64">
+                  <ContextMenuLabel>Slide {currentIndex + 1} 메뉴</ContextMenuLabel>
+                  <ContextMenuItem inset onSelect={() => onOpenSettings(activeSlide.id)}>
+                    세부 설정 열기
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
 
-              <ContextMenuSub>
-                <ContextMenuSubTrigger inset>애니메이션 스타일</ContextMenuSubTrigger>
-                <ContextMenuSubContent className="w-56">
-                  <ContextMenuItem inset onSelect={() => handleAnimationChange(undefined)}>
-                    자동 (문장부호 기반)
-                  </ContextMenuItem>
-                  {Object.entries(animationStyles).map(([key, info]) => (
-                    <ContextMenuItem key={key} inset onSelect={() => handleAnimationChange(key as SlideSettings["animationStyle"])}>
-                      <div className="flex flex-col">
-                        <span>{info.label}</span>
-                        <span className="text-xs text-white/60">{info.description}</span>
-                      </div>
-                    </ContextMenuItem>
-                  ))}
-                </ContextMenuSubContent>
-              </ContextMenuSub>
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger inset>애니메이션 스타일</ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-56">
+                      <ContextMenuItem inset onSelect={() => handleAnimationChange(undefined)}>
+                        자동 (문장부호 기반)
+                      </ContextMenuItem>
+                      {Object.entries(animationStyles).map(([key, info]) => (
+                        <ContextMenuItem
+                          key={key}
+                          inset
+                          onSelect={() => handleAnimationChange(key as SlideSettings["animationStyle"])}
+                        >
+                          <div className="flex flex-col">
+                            <span>{info.label}</span>
+                            <span className="text-xs text-white/60">{info.description}</span>
+                          </div>
+                        </ContextMenuItem>
+                      ))}
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
 
-              <ContextMenuSub>
-                <ContextMenuSubTrigger inset>재생 길이</ContextMenuSubTrigger>
-                <ContextMenuSubContent>
-                  <ContextMenuItem inset onSelect={() => handleDurationChange(-300)}>
-                    더 빠르게 (-0.3s)
-                  </ContextMenuItem>
-                  <ContextMenuItem inset onSelect={() => handleDurationChange(300)}>
-                    더 느리게 (+0.3s)
-                  </ContextMenuItem>
-                  <ContextMenuItem inset onSelect={() => handleDurationChange(resetDurationDelta)}>
-                    기본 길이로 리셋
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger inset>재생 길이</ContextMenuSubTrigger>
+                    <ContextMenuSubContent>
+                      <ContextMenuItem inset onSelect={() => handleDurationChange(-300)}>
+                        더 빠르게 (-0.3s)
+                      </ContextMenuItem>
+                      <ContextMenuItem inset onSelect={() => handleDurationChange(300)}>
+                        더 느리게 (+0.3s)
+                      </ContextMenuItem>
+                      <ContextMenuItem inset onSelect={() => handleDurationChange(resetDurationDelta)}>
+                        기본 길이로 리셋
+                      </ContextMenuItem>
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
 
-              <ContextMenuSub>
-                <ContextMenuSubTrigger inset>테마</ContextMenuSubTrigger>
-                <ContextMenuSubContent>
-                  <ContextMenuItem inset onSelect={() => handleTheme("#0f172a", "#e2e8f0")}>
-                    딥블루 & 서리빛
-                  </ContextMenuItem>
-                  <ContextMenuItem inset onSelect={() => handleTheme("#0c0a09", "#f9fafb")}>
-                    다크 앰버
-                  </ContextMenuItem>
-                  <ContextMenuItem inset onSelect={() => handleTheme("#111827", "#f5f3ff")}>
-                    네온 보라
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
-            </ContextMenuContent>
-          </ContextMenu>
-        ) : (
-          slideContent
-        )
-      ) : (
-        slideContent
-      )}
-
-      <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
-        <Button variant="secondary" className="bg-white/10 text-white" onClick={goPrev} disabled={currentIndex === 0}>
-          <SkipBack className="h-4 w-4" />
-        </Button>
-        <Button
-          onClick={() => onPlayingChange(!isPlaying)}
-          className="bg-white text-black hover:bg-white/90"
-          disabled={!activeSlide}
-        >
-          {isPlaying ? (
-            <span className="flex items-center gap-2">
-              <Pause className="h-4 w-4" /> Pause
-            </span>
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger inset>테마</ContextMenuSubTrigger>
+                    <ContextMenuSubContent>
+                      <ContextMenuItem inset onSelect={() => handleTheme("#0f172a", "#e2e8f0")}>
+                        딥블루 & 서리빛
+                      </ContextMenuItem>
+                      <ContextMenuItem inset onSelect={() => handleTheme("#0c0a09", "#f9fafb")}>
+                        다크 앰버
+                      </ContextMenuItem>
+                      <ContextMenuItem inset onSelect={() => handleTheme("#111827", "#f5f3ff")}>
+                        네온 보라
+                      </ContextMenuItem>
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+                </ContextMenuContent>
+              </ContextMenu>
+            ) : (
+              slideContent
+            )
           ) : (
-            <span className="flex items-center gap-2">
-              <Play className="h-4 w-4" /> Play
-            </span>
+            slideContent
           )}
-        </Button>
-        <Button
-          variant="secondary"
-          className="bg-white/10 text-white"
-          onClick={goNext}
-          disabled={currentIndex >= slides.length - 1}
-        >
-          <SkipForward className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="secondary"
-          className="bg-white/10 text-white"
-          onClick={toggleFullscreen}
-          aria-pressed={isFullscreen}
-        >
-          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />} Fullscreen
-        </Button>
-        {onShare && (
-          <Button variant="secondary" className="bg-white/10 text-white" onClick={onShare}>
-            <Share2 className="h-4 w-4" /> Share
+        </div>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center px-4">
+        <div className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 backdrop-blur-lg">
+          <Button variant="secondary" className="bg-white/10 text-white" onClick={goPrev} disabled={currentIndex === 0}>
+            <SkipBack className="h-4 w-4" />
           </Button>
-        )}
-        {activeSlide && canEdit && (
-          <Button variant="ghost" className="text-white/80" onClick={() => onOpenSettings(activeSlide.id)}>
-            Edit slide
+          <Button
+            onClick={() => onPlayingChange(!isPlaying)}
+            className="bg-white text-black hover:bg-white/90"
+            disabled={!activeSlide}
+          >
+            {isPlaying ? (
+              <span className="flex items-center gap-2">
+                <Pause className="h-4 w-4" /> Pause
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Play className="h-4 w-4" /> Play
+              </span>
+            )}
           </Button>
-        )}
+          <Button
+            variant="secondary"
+            className="bg-white/10 text-white"
+            onClick={goNext}
+            disabled={currentIndex >= slides.length - 1}
+          >
+            <SkipForward className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            className="bg-white/10 text-white"
+            onClick={toggleFullscreen}
+            aria-pressed={isFullscreen}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />} Fullscreen
+          </Button>
+          {onShare && (
+            <Button variant="secondary" className="bg-white/10 text-white" onClick={onShare}>
+              <Share2 className="h-4 w-4" /> Share
+            </Button>
+          )}
+          {activeSlide && canEdit && (
+            <Button variant="ghost" className="text-white/80" onClick={() => onOpenSettings(activeSlide.id)}>
+              Edit slide
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
