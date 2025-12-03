@@ -22,13 +22,16 @@ export function TextEditor({ value, onChange, onTransform, isCollapsed }: TextEd
         isCollapsed ? "max-h-64" : "max-h-[50vh]",
       )}
     >
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">Editor</p>
             <h2 className="text-lg font-semibold">Write your script</h2>
           </div>
-          <Button onClick={onTransform} className="gap-2 bg-white text-black hover:bg-white/90">
+          <Button
+            onClick={onTransform}
+            className="gap-2 bg-white text-black hover:bg-white/90 w-full sm:w-auto justify-center"
+          >
             <Sparkles className="h-4 w-4" /> Transform / Play
           </Button>
         </div>
