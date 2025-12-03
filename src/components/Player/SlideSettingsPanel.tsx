@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,26 @@ interface SlideSettingsPanelProps {
  */
 export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: SlideSettingsPanelProps) {
   const animationOptions = useMemo(() => Object.entries(animationStyles), []);
+  const [draft, setDraft] = useState<SlideSettings>({});
+
+  useEffect(() => {
+    if (!slide) return;
+    setDraft({
+      duration: settings?.duration ?? slide.baseDuration,
+      bgColor: settings?.bgColor ?? "",
+      textColor: settings?.textColor ?? "",
+      animationStyle: settings?.animationStyle,
+    });
+  }, [settings, slide]);
+
+  const handleChange = (values: Partial<SlideSettings>) => {
+    setDraft(prev => ({ ...prev, ...values }));
+  };
+
+  const handleApply = () => {
+    onUpdate(draft);
+    onClose();
+  };
 
   if (!slide) return null;
 
@@ -39,8 +59,8 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
           <Input
             type="number"
             min={500}
-            value={settings?.duration ?? slide.baseDuration}
-            onChange={e => onUpdate({ duration: Number(e.target.value) })}
+            value={draft.duration ?? slide.baseDuration}
+            onChange={e => handleChange({ duration: Number(e.target.value) })}
             className="bg-white/5 border-white/10 text-white"
           />
         </div>
@@ -51,8 +71,8 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
             <Input
               type="text"
               placeholder="#0f172a or tailwind name"
-              value={settings?.bgColor ?? ""}
-              onChange={e => onUpdate({ bgColor: e.target.value })}
+              value={draft.bgColor ?? ""}
+              onChange={e => handleChange({ bgColor: e.target.value })}
               className="bg-white/5 border-white/10 text-white"
             />
           </div>
@@ -61,8 +81,8 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
             <Input
               type="text"
               placeholder="#fff"
-              value={settings?.textColor ?? ""}
-              onChange={e => onUpdate({ textColor: e.target.value })}
+              value={draft.textColor ?? ""}
+              onChange={e => handleChange({ textColor: e.target.value })}
               className="bg-white/5 border-white/10 text-white"
             />
           </div>
@@ -71,9 +91,9 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
         <div className="space-y-2">
           <Label className="text-white/80">Animation style</Label>
           <Select
-            value={settings?.animationStyle ?? "auto"}
+            value={draft.animationStyle ?? "auto"}
             onValueChange={value =>
-              onUpdate({ animationStyle: value === "auto" ? undefined : (value as SlideSettings["animationStyle"]) })
+              handleChange({ animationStyle: value === "auto" ? undefined : (value as SlideSettings["animationStyle"]) })
             }
           >
             <SelectTrigger className="bg-white/5 border-white/10 text-white">
@@ -91,6 +111,15 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <Button variant="ghost" className="text-white/70" onClick={onClose}>
+            취소
+          </Button>
+          <Button className="bg-white text-black hover:bg-white/90" onClick={handleApply}>
+            적용
+          </Button>
         </div>
       </div>
     </aside>
