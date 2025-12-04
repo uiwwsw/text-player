@@ -152,7 +152,7 @@ export function ScriptPlayer({
   const slideContent = activeSlide ? (
     <div
       className={cn(
-        "relative z-10 flex h-full w-full items-center justify-center p-6 text-center",
+        "relative z-10 flex h-full w-full items-center justify-center p-4 sm:p-6 pt-10 pb-28 sm:pb-20 text-center",
         "transition-colors duration-500",
       )}
       style={{
@@ -162,12 +162,12 @@ export function ScriptPlayer({
     >
       <div className="relative max-w-5xl w-full">
         <div className="absolute inset-0 rounded-3xl bg-white/5 blur-3xl" aria-hidden />
-        <div className="relative rounded-3xl border border-white/10 bg-black/30 px-6 py-8 shadow-2xl backdrop-blur-xl">
+        <div className="relative rounded-3xl border border-white/10 bg-black/30 px-4 sm:px-6 py-6 sm:py-8 shadow-2xl backdrop-blur-xl">
           <p className="text-xs uppercase tracking-[0.3em] text-white/60 mb-4">Slide {currentIndex + 1}</p>
           <div
             key={`${activeSlide.id}-${animationCycle}`}
             className={cn(
-              "text-3xl sm:text-4xl md:text-6xl font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
+              "text-2xl sm:text-4xl md:text-6xl font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
               "drop-shadow-[0_15px_35px_rgba(0,0,0,0.45)]",
               "max-h-[60vh] overflow-y-auto pr-1",
               resolveAnimationStyle(activeSlide.punctuation, activeSettings.animationStyle),
@@ -267,28 +267,36 @@ export function ScriptPlayer({
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center px-4">
-        <div className="flex items-center gap-2 rounded-full bg-black/30 px-3 py-2 backdrop-blur-lg">
-          <Button variant="secondary" className="bg-white/10 text-white" onClick={goPrev} disabled={currentIndex === 0}>
+      <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center px-3 sm:px-4">
+        <div className="flex max-w-4xl w-full flex-wrap items-center justify-center gap-2 sm:gap-3 rounded-2xl bg-black/40 px-3 py-3 sm:px-4 backdrop-blur-lg shadow-lg">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="bg-white/10 text-white"
+            onClick={goPrev}
+            disabled={currentIndex === 0}
+          >
             <SkipBack className="h-4 w-4" />
           </Button>
           <Button
             onClick={() => onPlayingChange(!isPlaying)}
-            className="bg-white text-black hover:bg-white/90"
+            size="sm"
+            className="flex-1 sm:flex-none min-w-[140px] bg-white text-black hover:bg-white/90"
             disabled={!activeSlide}
           >
             {isPlaying ? (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center justify-center gap-2">
                 <Pause className="h-4 w-4" /> Pause
               </span>
             ) : (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center justify-center gap-2">
                 <Play className="h-4 w-4" /> Play
               </span>
             )}
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             className="bg-white/10 text-white"
             onClick={goNext}
             disabled={currentIndex >= slides.length - 1}
@@ -297,6 +305,7 @@ export function ScriptPlayer({
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             className="bg-white/10 text-white"
             onClick={toggleFullscreen}
             aria-pressed={isFullscreen}
@@ -304,12 +313,17 @@ export function ScriptPlayer({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />} Fullscreen
           </Button>
           {onShare && (
-            <Button variant="secondary" className="bg-white/10 text-white" onClick={onShare}>
+            <Button variant="secondary" size="sm" className="bg-white/10 text-white" onClick={onShare}>
               <Share2 className="h-4 w-4" /> Share
             </Button>
           )}
           {activeSlide && canEdit && (
-            <Button variant="ghost" className="text-white/80" onClick={() => onOpenSettings(activeSlide.id)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white/80"
+              onClick={() => onOpenSettings(activeSlide.id)}
+            >
               Edit slide
             </Button>
           )}

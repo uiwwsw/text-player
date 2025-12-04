@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./index.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,8 @@ export function App({ fullscreenOnly = false }: AppProps) {
   const [settingsTarget, setSettingsTarget] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const [isSharedView, setIsSharedView] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const activeSlide = useMemo(() => slides[currentIndex], [slides, currentIndex]);
   const canEdit = !fullscreenOnly && !isSharedView;
@@ -40,6 +43,21 @@ export function App({ fullscreenOnly = false }: AppProps) {
       setSettingsTarget(null);
     }
   }, [canEdit]);
+
+  useEffect(() => {
+    const sharedState = (location.state as { sharedText?: string } | null) ?? null;
+    if (!sharedState?.sharedText) return;
+
+    setRawText(sharedState.sharedText);
+    const parsed = parseTextToSlides(sharedState.sharedText);
+    setSlides(parsed);
+    setCurrentIndex(0);
+    setIsPlaying(false);
+    setMode("edit");
+    setIsSharedView(false);
+
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const copyToClipboard = useCallback(async (text: string) => {
     if (navigator?.clipboard?.writeText && window.isSecureContext) {
@@ -110,6 +128,18 @@ export function App({ fullscreenOnly = false }: AppProps) {
   const showToast = useCallback((message: string, tone: "success" | "error" = "success") => {
     setToast({ message, tone });
   }, []);
+
+  const handleReturnToEditor = useCallback(async () => {
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (error) {
+        console.error("Failed to exit fullscreen", error);
+      }
+    }
+
+    navigate("/", { state: { sharedText: rawText } });
+  }, [navigate, rawText]);
 
   useEffect(() => {
     if (!toast) return;
@@ -213,8 +243,25 @@ export function App({ fullscreenOnly = false }: AppProps) {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col">
+      {!canEdit && (
+        <div className="fixed inset-x-0 top-3 z-40 px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 rounded-2xl border border-white/10 bg-black/70 px-3 py-2 sm:px-4 shadow-lg backdrop-blur-xl">
+            <p className="text-sm text-center sm:text-left text-white/80">
+              풀스크린이나 공유 화면입니다. 메인으로 돌아가면 내용을 다시 수정할 수 있어요.
+            </p>
+            <Button
+              size="sm"
+              className="w-full sm:w-auto bg-white text-black hover:bg-white/90"
+              onClick={handleReturnToEditor}
+            >
+              메인으로 이동
+            </Button>
+          </div>
+        </div>
+      )}
+
       {canEdit && (
-        <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/50 backdrop-blur-sm">
+        <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 bg-black/50 backdrop-blur-sm">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">Typography motion lab</p>
             <h1 className="text-xl font-semibold">Text Player</h1>

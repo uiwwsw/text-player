@@ -14,8 +14,8 @@ interface ThumbnailsStripProps {
  */
 export function ThumbnailsStrip({ slides, currentIndex, onSelect, onOpenSettings }: ThumbnailsStripProps) {
   return (
-    <div className="w-full border-b border-white/10 bg-black/60 backdrop-blur-md px-4 py-3 overflow-x-auto">
-      <div className="flex gap-3 min-w-full">
+    <div className="w-full border-b border-white/10 bg-black/60 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-3 overflow-x-auto">
+      <div className="flex gap-2 sm:gap-3 min-w-full">
         {slides.length === 0 && <p className="text-sm text-white/60">Add text to see slides.</p>}
         {slides.map((slide, idx) => {
           const isActive = idx === currentIndex;
@@ -24,7 +24,7 @@ export function ThumbnailsStrip({ slides, currentIndex, onSelect, onOpenSettings
               key={slide.id}
               className={cn(
                 "group relative rounded-lg border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5",
-                "border-white/10 bg-white/5",
+                "border-white/10 bg-white/5 min-w-[180px] sm:min-w-[200px]",
                 isActive && "ring-2 ring-white border-white/30",
               )}
               onClick={() => onSelect(idx)}
