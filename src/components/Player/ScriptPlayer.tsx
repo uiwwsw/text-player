@@ -103,7 +103,7 @@ export function ScriptPlayer({
   useEffect(() => {
     return () => {
       if (document.fullscreenElement === containerRef.current) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
     };
   }, []);
@@ -186,8 +186,8 @@ export function ScriptPlayer({
     <div
       ref={containerRef}
       className={cn(
-        "relative h-full bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden",
-        isFullscreen && "h-screen w-screen",
+        "absolute inset-0 bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 overflow-hidden",
+        isFullscreen && "h-screen w-screen relative z-50",
       )}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.04),transparent_25%)]" />
