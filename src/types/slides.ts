@@ -13,5 +13,6 @@ export interface SlideSettings {
   duration?: number;
   bgColor?: string;
   textColor?: string;
+  fontSize?: "sm" | "md" | "lg" | "xl";
   animationStyle?: AnimationStyle;
 }

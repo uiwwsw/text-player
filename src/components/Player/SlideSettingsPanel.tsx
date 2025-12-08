@@ -3,7 +3,6 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { animationStyles } from "@/lib/animations";
@@ -18,15 +17,30 @@ interface SlideSettingsPanelProps {
 }
 
 const settingsSchema = z.object({
-  duration: z.string().refine((val) => !Number.isNaN(Number(val)) && Number(val) >= 0, {
-    message: "0 이상의 숫자를 입력해주세요.",
-  }),
-  bgColor: z.string().optional(),
-  textColor: z.string().optional(),
+  duration: z.string(),
+  bgColor: z.string(),
+  textColor: z.string(),
+  fontSize: z.enum(["sm", "md", "lg", "xl"]),
   animationStyle: z.string().optional(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
+
+const PRESET_THEMES = [
+  { label: "Default (Dark)", bg: "#000000", text: "#ffffff" },
+  { label: "Slate", bg: "#0f172a", text: "#e2e8f0" },
+  { label: "Paper", bg: "#f8fafc", text: "#0f172a" },
+  { label: "Midnight", bg: "#1e1b4b", text: "#e0e7ff" },
+  { label: "Deep Forest", bg: "#022c22", text: "#e2e8f0" },
+  { label: "Neon Purple", bg: "#2e1065", text: "#f3e8ff" },
+];
+
+const FONT_SIZES = [
+  { value: "sm", label: "Small" },
+  { value: "md", label: "Medium (Default)" },
+  { value: "lg", label: "Large" },
+  { value: "xl", label: "Extra Large" },
+] as const;
 
 /**
  * Small panel for per-slide tuning.
@@ -36,98 +50,150 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
+    mode: "onChange",
     defaultValues: {
-      duration: String(settings?.duration ?? slide?.baseDuration ?? 2000),
-      bgColor: settings?.bgColor ?? "",
-      textColor: settings?.textColor ?? "",
+      duration: String((settings?.duration ?? slide?.baseDuration ?? 2000) / 1000), // Convert ms to s
+      bgColor: settings?.bgColor ?? PRESET_THEMES[0].bg,
+      textColor: settings?.textColor ?? PRESET_THEMES[0].text,
+      fontSize: settings?.fontSize ?? "md",
       animationStyle: settings?.animationStyle ?? "auto",
     },
   });
 
   useEffect(() => {
     if (!slide) return;
+    const currentDuration = settings?.duration ?? slide.baseDuration;
+
+    // Find matching theme or default to custom if not found, but we only have presets now so default to first
+    const currentBg = settings?.bgColor ?? PRESET_THEMES[0].bg;
+    const currentText = settings?.textColor ?? PRESET_THEMES[0].text;
+
     form.reset({
-      duration: String(settings?.duration ?? slide.baseDuration),
-      bgColor: settings?.bgColor ?? "",
-      textColor: settings?.textColor ?? "",
+      duration: String(currentDuration / 1000),
+      bgColor: currentBg,
+      textColor: currentText,
+      fontSize: settings?.fontSize ?? "md",
       animationStyle: settings?.animationStyle ?? "auto",
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slide?.id, form]);
+  }, [slide?.id, slide?.baseDuration, settings, form]);
 
   const onSubmit = (data: SettingsFormValues) => {
     onUpdate({
-      duration: Number(data.duration),
-      bgColor: data.bgColor || undefined,
-      textColor: data.textColor || undefined,
+      duration: Number(data.duration) * 1000, // Convert s to ms
+      bgColor: data.bgColor,
+      textColor: data.textColor,
+      fontSize: data.fontSize as SlideSettings["fontSize"],
       animationStyle: data.animationStyle === "auto" ? undefined : (data.animationStyle as SlideSettings["animationStyle"]),
     });
-    onClose();
+    // Don't close immediately to allow tweaking
   };
+
+  // Watch for changes to auto-submit (live preview)
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.duration && value.bgColor && value.textColor && value.fontSize) {
+        onUpdate({
+          duration: Number(value.duration) * 1000,
+          bgColor: value.bgColor,
+          textColor: value.textColor,
+          fontSize: value.fontSize as SlideSettings["fontSize"],
+          animationStyle: value.animationStyle === "auto" ? undefined : (value.animationStyle as SlideSettings["animationStyle"]),
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onUpdate]);
 
   if (!slide) return null;
 
   return (
     <>
       <div className="fixed inset-0 z-20" onClick={onClose} aria-hidden="true" />
-      <aside className="fixed right-4 top-24 w-80 bg-black/80 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-30">
+      <aside className="fixed right-4 top-24 w-80 bg-neutral-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-30 animate-in slide-in-from-right-10 fade-in duration-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">Slide {slide.id.slice(0, 4)}</p>
             <h3 className="font-semibold text-white">Settings</h3>
           </div>
-          <Button variant="ghost" size="icon" className="text-white/70" onClick={onClose}>
+          <Button variant="ghost" size="icon" className="text-white/70 hover:bg-white/10" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 text-sm">
+        <div className="space-y-5 p-5 text-sm">
           <div className="space-y-2">
-            <Label className="text-white/80">Duration (ms)</Label>
+            <Label className="text-white/80">Duration</Label>
             <Controller
               control={form.control}
               name="duration"
               render={({ field }) => (
-                <Input
-                  {...field}
-                  type="text"
-                  placeholder="e.g. 2000"
-                  className="bg-white/5 border-white/10 text-white"
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (/^\d*$/.test(value)) {
-                      field.onChange(value);
-                    }
-                  }}
-                />
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-neutral-900 border-white/10 text-white">
+                    {[1, 2, 3, 4, 5, 7, 10, 15, 20].map((sec) => (
+                      <SelectItem key={sec} value={String(sec)}>
+                        {sec} Seconds
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             />
-            {form.formState.errors.duration && (
-              <p className="text-xs text-red-400">{form.formState.errors.duration.message}</p>
-            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label className="text-white/80">Background</Label>
-              <Input
-                {...form.register("bgColor")}
-                type="text"
-                placeholder="#0f172a"
-                className="bg-white/5 border-white/10 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-white/80">Text color</Label>
-              <Input
-                {...form.register("textColor")}
-                type="text"
-                placeholder="#fff"
-                className="bg-white/5 border-white/10 text-white"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="text-white/80">Theme</Label>
+            <Select
+              value={form.watch("bgColor")}
+              onValueChange={(val) => {
+                const theme = PRESET_THEMES.find(t => t.bg === val);
+                if (theme) {
+                  form.setValue("bgColor", theme.bg);
+                  form.setValue("textColor", theme.text);
+                }
+              }}
+            >
+              <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectValue placeholder="Select theme" />
+              </SelectTrigger>
+              <SelectContent className="bg-neutral-900 border-white/10 text-white">
+                {PRESET_THEMES.map((theme) => (
+                  <SelectItem key={theme.bg} value={theme.bg}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full border border-white/20"
+                        style={{ backgroundColor: theme.bg }}
+                      />
+                      <span>{theme.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-white/80">Text Size</Label>
+            <Controller
+              control={form.control}
+              name="fontSize"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-neutral-900 border-white/10 text-white">
+                    {FONT_SIZES.map((size) => (
+                      <SelectItem key={size.value} value={size.value}>
+                        {size.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="space-y-2">
@@ -139,29 +205,20 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
               <SelectTrigger className="bg-white/5 border-white/10 text-white">
                 <SelectValue placeholder="Auto from punctuation" />
               </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-white/10 text-white">
-                <SelectItem value="auto">Auto</SelectItem>
+              <SelectContent className="bg-neutral-900 border-white/10 text-white max-h-[200px]">
+                <SelectItem value="auto">Auto (Default)</SelectItem>
                 {animationOptions.map(([key, info]) => (
                   <SelectItem key={key} value={key}>
-                    <div className="flex flex-col">
-                      <span>{info.label}</span>
-                      <span className="text-xs text-white/60">{info.description}</span>
+                    <div className="flex flex-col py-0.5">
+                      <span className="font-medium">{info.label}</span>
+                      <span className="text-[10px] text-white/50">{info.description}</span>
                     </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" className="text-white/70" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit" className="bg-white text-black hover:bg-white/90">
-              적용
-            </Button>
-          </div>
-        </form>
+        </div>
       </aside>
     </>
   );

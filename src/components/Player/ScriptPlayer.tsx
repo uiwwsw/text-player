@@ -165,27 +165,53 @@ export function ScriptPlayer({
     }
   };
 
+  /* Font size map */
+  const fontSizeClasses = {
+    sm: "text-xl sm:text-2xl md:text-3xl",
+    md: "text-2xl sm:text-4xl md:text-6xl",
+    lg: "text-3xl sm:text-6xl md:text-8xl",
+    xl: "text-4xl sm:text-7xl md:text-9xl",
+  };
+
   const slideContent = activeSlide ? (
     <div
       className={cn(
-        "relative z-10 flex h-full w-full items-center justify-center p-4 pb-24 text-center",
-        "transition-colors duration-500",
+        "relative z-10 flex h-full w-full items-center justify-center p-4 pb-24 text-center transition-colors duration-500",
       )}
       style={{
         backgroundColor: activeSettings.bgColor,
         color: activeSettings.textColor,
       }}
     >
-      <div className={cn("relative w-full transition-all duration-500", isFullscreen ? "max-w-7xl" : "max-w-6xl")}>
-        <div className="absolute inset-0 rounded-3xl bg-white/5 blur-3xl" aria-hidden />
-        <div className="relative rounded-3xl border border-white/10 bg-black/30 px-4 sm:px-6 py-6 sm:py-8 shadow-2xl backdrop-blur-xl">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/60 mb-4">Slide {currentIndex + 1}</p>
+      <div className={cn(
+        "relative w-full transition-all duration-500",
+        // Larger container in fullscreen/shared mode
+        (isFullscreen || !canEdit) ? "max-w-[90vw]" : "max-w-6xl"
+      )}>
+        {/* Background glow/blur effect based on theme color if possible, otherwise generic */}
+        <div
+          className="absolute inset-0 rounded-3xl opacity-20 blur-3xl transition-colors duration-500"
+          style={{ backgroundColor: activeSettings.textColor ?? "white" }}
+          aria-hidden
+        />
+
+        <div
+          className="relative rounded-3xl border border-white/10 px-4 sm:px-6 py-6 sm:py-8 shadow-2xl backdrop-blur-xl transition-colors duration-500"
+          style={{
+            backgroundColor: activeSettings.bgColor ? `${activeSettings.bgColor}80` : "rgba(0,0,0,0.3)", // semi-transparent version of bg
+            borderColor: activeSettings.textColor ? `${activeSettings.textColor}20` : "rgba(255,255,255,0.1)"
+          }}
+        >
+          {/* Hide label in shared/fullscreen mode unless editing */}
+          {canEdit && <p className="text-xs uppercase tracking-[0.3em] opacity-60 mb-4">Slide {currentIndex + 1}</p>}
+
           <div
             key={`${activeSlide.id}-${animationCycle}`}
             className={cn(
-              "text-2xl sm:text-4xl md:text-6xl font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
+              "font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
               "drop-shadow-[0_15px_35px_rgba(0,0,0,0.45)]",
               "max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar",
+              fontSizeClasses[activeSettings.fontSize ?? "md"],
               resolveAnimationStyle(activeSlide.punctuation, activeSettings.animationStyle),
             )}
           >

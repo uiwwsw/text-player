@@ -200,7 +200,13 @@ export function App({ fullscreenOnly = false }: AppProps) {
       if (input === null) return;
       const passphrase = (input?.trim() ?? "") || suggestedKey;
 
-      const encrypted = await encryptText(rawText, passphrase);
+      // Wrap text and settings in a JSON object
+      const payload = JSON.stringify({
+        text: rawText,
+        settings: slideSettings,
+      });
+
+      const encrypted = await encryptText(payload, passphrase);
       const url = new URL(window.location.href);
       url.pathname = "/fullscreen";
       url.searchParams.set("data", encrypted);
@@ -217,7 +223,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
       console.error(error);
       showToast("링크를 만들지 못했습니다.", "error");
     }
-  }, [copyToClipboard, rawText, showToast]);
+  }, [copyToClipboard, rawText, slideSettings, showToast]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -242,10 +248,28 @@ export function App({ fullscreenOnly = false }: AppProps) {
       }
 
       try {
-        const text = await decryptText(encoded, passphrase);
-        const parsed = parseTextToSlides(text);
-        setRawText(text);
+        const decrypted = await decryptText(encoded, passphrase);
+
+        let textToParse = decrypted;
+        let settingsToApply = {};
+
+        // Try to parse as JSON (new format)
+        try {
+          const payload = JSON.parse(decrypted);
+          if (payload.text) {
+            textToParse = payload.text;
+            settingsToApply = payload.settings || {};
+          }
+        } catch (e) {
+          // Backward compatibility: If not JSON, assume it's the old raw string format
+          console.log("Legacy shared link detected");
+          textToParse = decrypted;
+        }
+
+        const parsed = parseTextToSlides(textToParse);
+        setRawText(textToParse);
         setSlides(parsed);
+        setSlideSettings(settingsToApply);
         setCurrentIndex(0);
         setMode(fullscreenOnly ? "play" : "edit");
         setIsPlaying(fullscreenOnly);
