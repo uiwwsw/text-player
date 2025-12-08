@@ -7,6 +7,12 @@ export const animationStyles: Record<AnimationStyle, { label: string; className:
   commaSlide: { label: "Comma Slide", className: "animate-comma", description: "Diagonal glide that settles" },
   slowFade: { label: "Slow Fade", className: "animate-slow-fade", description: "Suspended dissolve for ellipsis" },
   period: { label: "Period", className: "animate-period", description: "Curtain-lift reveal for statements" },
+  zoomIn: { label: "Zoom In", className: "animate-zoom-in", description: "Dramatic scale up from center" },
+  slideLeft: { label: "Slide Left", className: "animate-slide-left", description: "Smooth entry from right" },
+  slideRight: { label: "Slide Right", className: "animate-slide-right", description: "Smooth entry from left" },
+  flip: { label: "Flip", className: "animate-flip", description: "3D flip reveal" },
+  bounce: { label: "Bounce", className: "animate-bounce-in", description: "Playful bounce entry" },
+  rotate: { label: "Rotate", className: "animate-rotate-in", description: "Spinning entry" },
 };
 
 export const defaultAnimationForPunctuation: Record<PunctuationKind, AnimationStyle> = {

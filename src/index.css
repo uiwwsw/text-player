@@ -29,6 +29,24 @@
   .animate-period {
     animation: periodEnter 1.1s cubic-bezier(0.33, 1, 0.68, 1) both;
   }
+  .animate-zoom-in {
+    animation: zoomIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-slide-left {
+    animation: slideLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-slide-right {
+    animation: slideRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-flip {
+    animation: flipIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-bounce-in {
+    animation: bounceIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-rotate-in {
+    animation: rotateIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }
 
 @keyframes fadeRise {
@@ -147,5 +165,83 @@
     opacity: 1;
     transform: translateY(0) scale(1);
     clip-path: inset(0 0 0 0 round 24px);
+  }
+}
+
+@keyframes zoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes slideLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(50px);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes slideRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-50px);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes flipIn {
+  0% {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(-90deg);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(0deg);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rotateIn {
+  0% {
+    opacity: 0;
+    transform: rotate(-180deg) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0) scale(1);
   }
 }

@@ -19,11 +19,11 @@ export function TextEditor({ value, onChange, onTransform, isCollapsed }: TextEd
     <div
       className={cn(
         "transition-all duration-500 ease-in-out border-t border-white/10",
-        isCollapsed ? "max-h-64" : "max-h-[50vh]",
+        isCollapsed ? "max-h-64" : "max-h-[85vh]",
       )}
     >
-      <div className="p-4 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="p-4 sm:p-6 space-y-4 h-full flex flex-col">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">Editor</p>
             <h2 className="text-lg font-semibold">Write your script</h2>
@@ -36,15 +36,15 @@ export function TextEditor({ value, onChange, onTransform, isCollapsed }: TextEd
           </Button>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="script" className="text-white/70">
+        <div className="space-y-2 flex-1 flex flex-col min-h-0">
+          <Label htmlFor="script" className="text-white/70 shrink-0">
             Each non-empty line becomes a slide. You can mix Korean and English.
           </Label>
           <Textarea
             id="script"
             value={value}
             onChange={e => onChange(e.target.value)}
-            className="min-h-32 text-base bg-white/5 border-white/10 text-white resize-vertical"
+            className="flex-1 text-base bg-white/5 border-white/10 text-white resize-none min-h-[200px]"
             placeholder="Paste your words here..."
           />
         </div>

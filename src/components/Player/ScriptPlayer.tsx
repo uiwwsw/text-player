@@ -14,7 +14,7 @@ import {
 import { animationStyles, resolveAnimationStyle } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import type { Slide, SlideSettings } from "@/types/slides";
-import { Maximize2, Minimize2, Pause, Play, Share2, SkipBack, SkipForward } from "lucide-react";
+import { Maximize2, Minimize2, Pause, Play, Share2, SkipBack, SkipForward, Repeat } from "lucide-react";
 
 interface ScriptPlayerProps {
   slides: Slide[];
@@ -23,6 +23,8 @@ interface ScriptPlayerProps {
   onIndexChange: (index: number) => void;
   isPlaying: boolean;
   onPlayingChange: (state: boolean) => void;
+  isLooping: boolean;
+  onLoopingChange: (state: boolean) => void;
   onOpenSettings: (id: string) => void;
   onUpdateSettings: (id: string, values: SlideSettings) => void;
   onShare?: () => void;
@@ -39,6 +41,8 @@ export function ScriptPlayer({
   onIndexChange,
   isPlaying,
   onPlayingChange,
+  isLooping,
+  onLoopingChange,
   onOpenSettings,
   onUpdateSettings,
   onShare,
@@ -67,12 +71,16 @@ export function ScriptPlayer({
       if (currentIndex < slides.length - 1) {
         onIndexChange(currentIndex + 1);
       } else {
-        onPlayingChange(false);
+        if (isLooping) {
+          onIndexChange(0);
+        } else {
+          onPlayingChange(false);
+        }
       }
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [activeSlide, currentIndex, isPlaying, onIndexChange, onPlayingChange, slideSettings, slides.length]);
+  }, [activeSlide, currentIndex, isPlaying, isLooping, onIndexChange, onPlayingChange, slideSettings, slides.length]);
 
   useEffect(() => {
     const previous = previousValuesRef.current;
@@ -299,9 +307,18 @@ export function ScriptPlayer({
             size="sm"
             className="bg-white/10 text-white"
             onClick={goNext}
-            disabled={currentIndex >= slides.length - 1}
+            disabled={currentIndex >= slides.length - 1 && !isLooping}
           >
             <SkipForward className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className={cn("bg-white/10 text-white", isLooping && "bg-white/30 text-white")}
+            onClick={() => onLoopingChange(!isLooping)}
+            aria-pressed={isLooping}
+          >
+            <Repeat className="h-4 w-4" />
           </Button>
           <Button
             variant="secondary"

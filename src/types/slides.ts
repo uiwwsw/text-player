@@ -1,6 +1,6 @@
 export type PunctuationKind = "exclamation" | "question" | "period" | "comma" | "ellipsis" | "none";
 
-export type AnimationStyle = "fade" | "punch" | "shake" | "commaSlide" | "slowFade" | "period";
+export type AnimationStyle = "fade" | "punch" | "shake" | "commaSlide" | "slowFade" | "period" | "zoomIn" | "slideLeft" | "slideRight" | "flip" | "bounce" | "rotate";
 
 export interface Slide {
   id: string;
