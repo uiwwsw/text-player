@@ -184,19 +184,19 @@ export function ScriptPlayer({
       }}
     >
       <div className={cn(
-        "relative w-full transition-all duration-500",
+        "relative w-full transition-all duration-500 will-change-transform",
         // Larger container in fullscreen/shared mode
         (isFullscreen || !canEdit) ? "max-w-[90vw]" : "max-w-6xl"
       )}>
-        {/* Background glow/blur effect based on theme color if possible, otherwise generic */}
+        {/* Background glow/blur effect: HIDDEN on mobile to save GPU, visible on desktop */}
         <div
-          className="absolute inset-0 rounded-3xl opacity-20 blur-3xl transition-colors duration-500"
+          className="absolute inset-0 rounded-3xl opacity-20 hidden sm:block sm:blur-3xl transition-colors duration-500 will-change-[opacity,background-color]"
           style={{ backgroundColor: activeSettings.textColor ?? "white" }}
           aria-hidden
         />
 
         <div
-          className="relative rounded-3xl border border-white/10 px-4 sm:px-6 py-6 sm:py-8 shadow-2xl backdrop-blur-xl transition-colors duration-500"
+          className="relative rounded-3xl border border-white/10 px-4 sm:px-6 py-6 sm:py-8 shadow-2xl backdrop-blur-sm sm:backdrop-blur-xl transition-colors duration-500 will-change-[background-color,border-color]"
           style={{
             backgroundColor: activeSettings.bgColor ? `${activeSettings.bgColor}80` : "rgba(0,0,0,0.3)", // semi-transparent version of bg
             borderColor: activeSettings.textColor ? `${activeSettings.textColor}20` : "rgba(255,255,255,0.1)"
