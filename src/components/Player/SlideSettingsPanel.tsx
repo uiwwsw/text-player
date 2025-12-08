@@ -52,7 +52,7 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
     resolver: zodResolver(settingsSchema),
     mode: "onChange",
     defaultValues: {
-      duration: String((settings?.duration ?? slide?.baseDuration ?? 2000) / 1000), // Convert ms to s
+      duration: String((settings?.duration ?? slide?.baseDuration ?? 1000) / 1000), // Convert ms to s
       bgColor: settings?.bgColor ?? PRESET_THEMES[0].bg,
       textColor: settings?.textColor ?? PRESET_THEMES[0].text,
       fontSize: settings?.fontSize ?? "md",
@@ -132,7 +132,7 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
                   <SelectContent className="bg-neutral-900 border-white/10 text-white">
-                    {[1, 2, 3, 4, 5, 7, 10, 15, 20].map((sec) => (
+                    {[0.5, 1, 1.5, 2, 3, 4, 5, 7, 10, 15, 20].map((sec) => (
                       <SelectItem key={sec} value={String(sec)}>
                         {sec} Seconds
                       </SelectItem>
