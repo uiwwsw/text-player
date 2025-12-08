@@ -200,6 +200,17 @@ if (existsSync(htmlPath)) {
   }
 }
 
+// Copy static assets that aren't bundled (like Open Graph images)
+const staticAssets = ["og-image.png"];
+for (const asset of staticAssets) {
+  const srcPath = path.join("src", asset);
+  const destPath = path.join(outdir, asset);
+  if (existsSync(srcPath)) {
+    await Bun.write(destPath, Bun.file(srcPath));
+    console.log(`📂 Copied ${asset} to ${path.relative(process.cwd(), outdir)}`);
+  }
+}
+
 // Print the results
 const end = performance.now();
 
