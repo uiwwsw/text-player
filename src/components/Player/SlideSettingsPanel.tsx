@@ -52,7 +52,8 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
       textColor: settings?.textColor ?? "",
       animationStyle: settings?.animationStyle ?? "auto",
     });
-  }, [settings, slide, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slide?.id, form]);
 
   const onSubmit = (data: SettingsFormValues) => {
     onUpdate({
@@ -88,6 +89,7 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
               type="text"
               placeholder="e.g. 2000"
               className="bg-white/5 border-white/10 text-white"
+              value={form.watch("duration")}
               onChange={(e) => {
                 const value = e.target.value;
                 if (/^\d*$/.test(value)) {
