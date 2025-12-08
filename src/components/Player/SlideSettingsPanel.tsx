@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       duration: String(settings?.duration ?? slide?.baseDuration ?? 2000),
       bgColor: settings?.bgColor ?? "",
@@ -84,18 +86,23 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 text-sm">
           <div className="space-y-2">
             <Label className="text-white/80">Duration (ms)</Label>
-            <Input
-              {...form.register("duration")}
-              type="text"
-              placeholder="e.g. 2000"
-              className="bg-white/5 border-white/10 text-white"
-              value={form.watch("duration")}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*$/.test(value)) {
-                  form.setValue("duration", value);
-                }
-              }}
+            <Controller
+              control={form.control}
+              name="duration"
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="text"
+                  placeholder="e.g. 2000"
+                  className="bg-white/5 border-white/10 text-white"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^\d*$/.test(value)) {
+                      field.onChange(value);
+                    }
+                  }}
+                />
+              )}
             />
             {form.formState.errors.duration && (
               <p className="text-xs text-red-400">{form.formState.errors.duration.message}</p>
