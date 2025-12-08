@@ -200,9 +200,10 @@ export function App({ fullscreenOnly = false }: AppProps) {
       if (input === null) return;
       const passphrase = (input?.trim() ?? "") || suggestedKey;
 
-      // Wrap text and settings in a JSON object
+      // Wrap slides and settings in a JSON object to preserve IDs
       const payload = JSON.stringify({
-        text: rawText,
+        text: rawText, // Keep text for backward compat or easy editor restore
+        slides: slides, // Crucial: Share the ACTUAL slides with IDs
         settings: slideSettings,
       });
 
@@ -223,7 +224,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
       console.error(error);
       showToast("링크를 만들지 못했습니다.", "error");
     }
-  }, [copyToClipboard, rawText, slideSettings, showToast]);
+  }, [copyToClipboard, rawText, slides, slideSettings, showToast]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -252,23 +253,37 @@ export function App({ fullscreenOnly = false }: AppProps) {
 
         let textToParse = decrypted;
         let settingsToApply = {};
+        let slidesToUse: Slide[] | null = null;
 
-        // Try to parse as JSON (new format)
+        // Try to parse as JSON
         try {
           const payload = JSON.parse(decrypted);
-          if (payload.text) {
+
+          // Case 1: Newest format (Includes slides with IDs)
+          if (payload.slides && Array.isArray(payload.slides)) {
+            slidesToUse = payload.slides;
+            textToParse = payload.text || slidesToUse.map(s => s.text).join("\n");
+            settingsToApply = payload.settings || {};
+          }
+          // Case 2: Intermediate format (Text + Settings only)
+          else if (payload.text) {
             textToParse = payload.text;
             settingsToApply = payload.settings || {};
           }
         } catch (e) {
-          // Backward compatibility: If not JSON, assume it's the old raw string format
+          // Case 3: Legacy format (Raw string)
           console.log("Legacy shared link detected");
           textToParse = decrypted;
         }
 
-        const parsed = parseTextToSlides(textToParse);
+        if (slidesToUse) {
+          setSlides(slidesToUse);
+        } else {
+          const parsed = parseTextToSlides(textToParse);
+          setSlides(parsed);
+        }
+
         setRawText(textToParse);
-        setSlides(parsed);
         setSlideSettings(settingsToApply);
         setCurrentIndex(0);
         setMode(fullscreenOnly ? "play" : "edit");
