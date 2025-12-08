@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { build, type BuildConfig } from "bun";
-import plugin from "bun-plugin-tailwind";
+
 import { existsSync } from "fs";
 import { rm } from "fs/promises";
 import path from "path";
@@ -140,11 +140,37 @@ const entrypoints = [...new Bun.Glob("**.html").scanSync("src")]
   .filter(dir => !dir.includes("node_modules"));
 console.log(`📄 Found ${entrypoints.length} HTML ${entrypoints.length === 1 ? "file" : "files"} to process\n`);
 
+// Plugin to ignore CSS imports (we build CSS separately)
+const ignoreCssPlugin = {
+  name: "ignore-css",
+  setup(build: any) {
+    build.onLoad({ filter: /\.css$/ }, (args: any) => {
+      console.log(`🔌 Ignoring CSS: ${args.path}`);
+      return {
+        contents: "",
+        loader: "js",
+      };
+    });
+  },
+};
+
 // Build all the HTML files
+console.log("🎨 Building Tailwind CSS...");
+const { execSync } = require("child_process");
+try {
+  execSync("bun x @tailwindcss/cli -i src/index.css -o dist/index.css", { stdio: "inherit" });
+  console.log("✅ Tailwind CSS built successfully");
+} catch (e) {
+  console.error("❌ Tailwind CSS build failed");
+  process.exit(1);
+}
+
+console.log("Bundling JS/HTML...");
 const result = await build({
   entrypoints,
   outdir,
-  plugins: [plugin],
+  plugins: [ignoreCssPlugin],
+  // external: ["*.css"], // External doesn't work well with HTML entrypoints for side-effect imports
   minify: true,
   target: "browser",
   sourcemap: "linked",
@@ -153,6 +179,26 @@ const result = await build({
   },
   ...cliConfig, // Merge in any CLI-provided options
 });
+
+if (!result.success) {
+  console.error("\n❌ Build failed\n");
+  for (const message of result.logs) {
+    console.error(message);
+  }
+  process.exit(1);
+}
+
+// Inject CSS link into index.html
+import { readFile, writeFile } from "fs/promises";
+const htmlPath = path.join(outdir, "index.html");
+if (existsSync(htmlPath)) {
+  let html = await readFile(htmlPath, "utf-8");
+  if (!html.includes("index.css")) {
+    html = html.replace("</head>", '<link rel="stylesheet" href="index.css">\n</head>');
+    await writeFile(htmlPath, html);
+    console.log("🔗 Injected index.css link into index.html");
+  }
+}
 
 // Print the results
 const end = performance.now();
