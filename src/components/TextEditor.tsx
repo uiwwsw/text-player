@@ -20,6 +20,7 @@ export function TextEditor({ value, onChange, onTransform, isCollapsed }: TextEd
       className={cn(
         "transition-all duration-500 ease-in-out border-t border-white/10",
         isCollapsed ? "max-h-64" : "max-h-[85vh]",
+        "overflow-hidden"
       )}
     >
       <div className="p-4 sm:p-6 space-y-4 h-full flex flex-col">
@@ -44,7 +45,7 @@ export function TextEditor({ value, onChange, onTransform, isCollapsed }: TextEd
             id="script"
             value={value}
             onChange={e => onChange(e.target.value)}
-            className="flex-1 text-base bg-white/5 border-white/10 text-white resize-none min-h-[200px]"
+            className="flex-1 text-base bg-white/5 border-white/10 text-white resize-none min-h-[100px]"
             placeholder="Paste your words here..."
           />
         </div>
