@@ -8,7 +8,7 @@ export const getPunctuationKind = (text: string): PunctuationKind => {
   if (!trimmed) return "none";
 
   if (ELLIPSIS.test(trimmed)) return "ellipsis";
-  const last = trimmed.at(-1);
+  const last = trimmed.slice(-1);
   if (last === "!") return "exclamation";
   if (last === "?") return "question";
   if (last === ",") return "comma";
@@ -17,21 +17,33 @@ export const getPunctuationKind = (text: string): PunctuationKind => {
 };
 
 /**
- * Returns an adjusted duration based on punctuation emphasis.
+ * Calculate duration based on text length and punctuation.
  */
-export const getDurationByPunctuation = (base: number, kind: PunctuationKind): number => {
+export const calculateDuration = (text: string, kind: PunctuationKind): number => {
+  const base = 500;
+  const perChar = 60;
+  const lengthDuration = text.length * perChar;
+
+  let punctuationBonus = 0;
   switch (kind) {
     case "exclamation":
-      return base + 600;
+      punctuationBonus = 600;
+      break;
     case "question":
-      return base + 350;
+      punctuationBonus = 600;
+      break;
     case "comma":
-      return Math.max(700, base - 300);
+      punctuationBonus = 200;
+      break;
     case "ellipsis":
-      return base + 1200;
+      punctuationBonus = 1000;
+      break;
     case "period":
-      return base;
+      punctuationBonus = 400;
+      break;
     default:
-      return base + 150;
+      punctuationBonus = 0;
   }
+
+  return Math.max(1000, base + lengthDuration + punctuationBonus);
 };

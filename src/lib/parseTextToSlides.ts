@@ -1,8 +1,6 @@
 import { nanoid } from "nanoid";
 import type { Slide } from "@/types/slides";
-import { getDurationByPunctuation, getPunctuationKind } from "@/lib/punctuation";
-
-const BASE_DURATION = 2000;
+import { calculateDuration, getPunctuationKind } from "@/lib/punctuation";
 
 /**
  * Convert raw textarea content into slide objects.
@@ -18,7 +16,7 @@ export const parseTextToSlides = (raw: string): Slide[] => {
         id: `${idx}-${nanoid(6)}`,
         text: line,
         punctuation,
-        baseDuration: getDurationByPunctuation(BASE_DURATION, punctuation),
+        baseDuration: calculateDuration(line, punctuation),
       } satisfies Slide;
     });
 };

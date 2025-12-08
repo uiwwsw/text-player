@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,29 +17,50 @@ interface SlideSettingsPanelProps {
   onClose: () => void;
 }
 
+const settingsSchema = z.object({
+  duration: z.string().refine((val) => !Number.isNaN(Number(val)) && Number(val) >= 0, {
+    message: "0 이상의 숫자를 입력해주세요.",
+  }),
+  bgColor: z.string().optional(),
+  textColor: z.string().optional(),
+  animationStyle: z.string().optional(),
+});
+
+type SettingsFormValues = z.infer<typeof settingsSchema>;
+
 /**
  * Small panel for per-slide tuning.
  */
 export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: SlideSettingsPanelProps) {
   const animationOptions = useMemo(() => Object.entries(animationStyles), []);
-  const [draft, setDraft] = useState<SlideSettings>({});
+
+  const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      duration: String(settings?.duration ?? slide?.baseDuration ?? 2000),
+      bgColor: settings?.bgColor ?? "",
+      textColor: settings?.textColor ?? "",
+      animationStyle: settings?.animationStyle ?? "auto",
+    },
+  });
 
   useEffect(() => {
     if (!slide) return;
-    setDraft({
-      duration: settings?.duration ?? slide.baseDuration,
+    form.reset({
+      duration: String(settings?.duration ?? slide.baseDuration),
       bgColor: settings?.bgColor ?? "",
       textColor: settings?.textColor ?? "",
-      animationStyle: settings?.animationStyle,
+      animationStyle: settings?.animationStyle ?? "auto",
     });
-  }, [settings, slide]);
+  }, [settings, slide, form]);
 
-  const handleChange = (values: Partial<SlideSettings>) => {
-    setDraft(prev => ({ ...prev, ...values }));
-  };
-
-  const handleApply = () => {
-    onUpdate(draft);
+  const onSubmit = (data: SettingsFormValues) => {
+    onUpdate({
+      duration: Number(data.duration),
+      bgColor: data.bgColor || undefined,
+      textColor: data.textColor || undefined,
+      animationStyle: data.animationStyle === "auto" ? undefined : (data.animationStyle as SlideSettings["animationStyle"]),
+    });
     onClose();
   };
 
@@ -55,36 +79,43 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="space-y-4 p-4 text-sm">
+
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 text-sm">
           <div className="space-y-2">
             <Label className="text-white/80">Duration (ms)</Label>
             <Input
-              type="number"
-              min={500}
-              value={draft.duration ?? slide.baseDuration}
-              onChange={e => handleChange({ duration: e.target.valueAsNumber || undefined })}
+              {...form.register("duration")}
+              type="text"
+              placeholder="e.g. 2000"
               className="bg-white/5 border-white/10 text-white"
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d*$/.test(value)) {
+                  form.setValue("duration", value);
+                }
+              }}
             />
+            {form.formState.errors.duration && (
+              <p className="text-xs text-red-400">{form.formState.errors.duration.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-white/80">Background</Label>
               <Input
+                {...form.register("bgColor")}
                 type="text"
-                placeholder="#0f172a or tailwind name"
-                value={draft.bgColor ?? ""}
-                onChange={e => handleChange({ bgColor: e.target.value })}
+                placeholder="#0f172a"
                 className="bg-white/5 border-white/10 text-white"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-white/80">Text color</Label>
               <Input
+                {...form.register("textColor")}
                 type="text"
                 placeholder="#fff"
-                value={draft.textColor ?? ""}
-                onChange={e => handleChange({ textColor: e.target.value })}
                 className="bg-white/5 border-white/10 text-white"
               />
             </div>
@@ -93,10 +124,8 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
           <div className="space-y-2">
             <Label className="text-white/80">Animation style</Label>
             <Select
-              value={draft.animationStyle ?? "auto"}
-              onValueChange={value =>
-                handleChange({ animationStyle: value === "auto" ? undefined : (value as SlideSettings["animationStyle"]) })
-              }
+              value={form.watch("animationStyle")}
+              onValueChange={(val) => form.setValue("animationStyle", val)}
             >
               <SelectTrigger className="bg-white/5 border-white/10 text-white">
                 <SelectValue placeholder="Auto from punctuation" />
@@ -116,14 +145,14 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button variant="ghost" className="text-white/70" onClick={onClose}>
+            <Button type="button" variant="ghost" className="text-white/70" onClick={onClose}>
               취소
             </Button>
-            <Button className="bg-white text-black hover:bg-white/90" onClick={handleApply}>
+            <Button type="submit" className="bg-white text-black hover:bg-white/90">
               적용
             </Button>
           </div>
-        </div>
+        </form>
       </aside>
     </>
   );
