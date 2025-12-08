@@ -174,6 +174,9 @@ export function App({ fullscreenOnly = false }: AppProps) {
   const handleSelectSlide = (index: number) => {
     setCurrentIndex(index);
     setIsPlaying(false);
+    if (settingsTarget) {
+      setSettingsTarget(slides[index].id);
+    }
   };
 
   const handleShare = useCallback(async () => {

@@ -14,7 +14,7 @@ interface ThumbnailsStripProps {
  */
 export function ThumbnailsStrip({ slides, currentIndex, onSelect, onOpenSettings }: ThumbnailsStripProps) {
   return (
-    <div className="w-full border-b border-white/10 bg-black/60 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-3 overflow-x-auto">
+    <div className="w-full border-b border-white/10 bg-black/60 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-3 overflow-x-auto relative z-40">
       <div className="flex gap-2 sm:gap-3 min-w-full">
         {slides.length === 0 && <p className="text-sm text-white/60">Add text to see slides.</p>}
         {slides.map((slide, idx) => {

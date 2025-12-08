@@ -160,7 +160,7 @@ export function ScriptPlayer({
   const slideContent = activeSlide ? (
     <div
       className={cn(
-        "relative z-10 flex h-full w-full items-center justify-center p-4 sm:p-6 pt-10 pb-28 sm:pb-20 text-center",
+        "relative z-10 flex h-full w-full items-center justify-center p-4 pb-24 text-center",
         "transition-colors duration-500",
       )}
       style={{
@@ -168,7 +168,7 @@ export function ScriptPlayer({
         color: activeSettings.textColor,
       }}
     >
-      <div className="relative max-w-5xl w-full">
+      <div className={cn("relative w-full transition-all duration-500", isFullscreen ? "max-w-7xl" : "max-w-6xl")}>
         <div className="absolute inset-0 rounded-3xl bg-white/5 blur-3xl" aria-hidden />
         <div className="relative rounded-3xl border border-white/10 bg-black/30 px-4 sm:px-6 py-6 sm:py-8 shadow-2xl backdrop-blur-xl">
           <p className="text-xs uppercase tracking-[0.3em] text-white/60 mb-4">Slide {currentIndex + 1}</p>
@@ -177,7 +177,7 @@ export function ScriptPlayer({
             className={cn(
               "text-2xl sm:text-4xl md:text-6xl font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
               "drop-shadow-[0_15px_35px_rgba(0,0,0,0.45)]",
-              "max-h-[60vh] overflow-y-auto pr-1",
+              "max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar",
               resolveAnimationStyle(activeSlide.punctuation, activeSettings.animationStyle),
             )}
           >
@@ -207,7 +207,7 @@ export function ScriptPlayer({
               <ContextMenu>
                 <ContextMenuTrigger asChild>{slideContent}</ContextMenuTrigger>
 
-                <ContextMenuContent align="end" className="w-64">
+                <ContextMenuContent className="w-64">
                   <ContextMenuLabel>Slide {currentIndex + 1} 메뉴</ContextMenuLabel>
                   <ContextMenuItem inset onSelect={() => onOpenSettings(activeSlide.id)}>
                     세부 설정 열기
