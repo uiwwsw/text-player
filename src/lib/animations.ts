@@ -16,11 +16,11 @@ export const animationStyles: Record<AnimationStyle, { label: string; className:
 };
 
 export const defaultAnimationForPunctuation: Record<PunctuationKind, AnimationStyle> = {
-  exclamation: "punch",
-  question: "shake",
-  period: "period",
-  comma: "commaSlide",
-  ellipsis: "slowFade",
+  exclamation: "bounce",
+  question: "flip",
+  period: "slideLeft",
+  comma: "slideRight",
+  ellipsis: "zoomIn",
   none: "fade",
 };
 

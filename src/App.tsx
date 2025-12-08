@@ -23,21 +23,26 @@ interface AppProps {
 }
 
 export function App({ fullscreenOnly = false }: AppProps) {
-  const [rawText, setRawText] = useState<string>(STARTER_TEXT);
-  const [slides, setSlides] = useState<Slide[]>(() => parseTextToSlides(STARTER_TEXT));
+  // Check for shared data in URL immediately to prevent flash of default content
+  const searchParams = new URLSearchParams(window.location.search);
+  const hasSharedData = searchParams.has("data");
+
+  const [rawText, setRawText] = useState<string>(hasSharedData ? "" : STARTER_TEXT);
+  const [slides, setSlides] = useState<Slide[]>(() => hasSharedData ? [] : parseTextToSlides(STARTER_TEXT));
   const [slideSettings, setSlideSettings] = useState<Record<string, SlideSettings>>({});
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [isPlaying, setIsPlaying] = useState<boolean>(!hasSharedData);
   const [isLooping, setIsLooping] = useState<boolean>(true);
-  const [mode, setMode] = useState<"edit" | "play">("play");
+  const [mode, setMode] = useState<"edit" | "play">(hasSharedData ? "play" : "play");
   const [settingsTarget, setSettingsTarget] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
-  const [isSharedView, setIsSharedView] = useState(false);
+  const [isSharedView, setIsSharedView] = useState(hasSharedData);
+  const [isLoading, setIsLoading] = useState(hasSharedData);
   const location = useLocation();
   const navigate = useNavigate();
 
   const activeSlide = useMemo(() => slides[currentIndex], [slides, currentIndex]);
-  const canEdit = !fullscreenOnly && !isSharedView;
+  const canEdit = !fullscreenOnly && !isSharedView && !isLoading;
 
   useEffect(() => {
     if (!canEdit) {
@@ -56,9 +61,12 @@ export function App({ fullscreenOnly = false }: AppProps) {
     setIsPlaying(false);
     setMode("edit");
     setIsSharedView(false);
+    setIsLoading(false);
 
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
+
+  // ... (copyToClipboard, handleTransform, handleReset, showToast, handleReturnToEditor, useEffect for toast, useEffect for fullscreenOnly, useEffect for settingsTarget, handleSettingsChange, handleSettingsApply, handleSelectSlide, handleShare) ...
 
   const copyToClipboard = useCallback(async (text: string) => {
     if (navigator?.clipboard?.writeText && window.isSecureContext) {
@@ -112,6 +120,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
 
   const handleReset = () => {
     setIsSharedView(false);
+    setIsLoading(false);
     setMode("edit");
     setIsPlaying(false);
     setSettingsTarget(null);
@@ -216,14 +225,19 @@ export function App({ fullscreenOnly = false }: AppProps) {
     if (!encoded) return;
 
     setIsSharedView(true);
+    setIsLoading(true);
 
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const providedKey = hashParams.get("key");
 
     const load = async () => {
+      // Small delay to ensure UI renders loading state if decryption is instant
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const passphrase = providedKey ?? window.prompt("공유된 텍스트가 암호화되어 있습니다. 비밀번호를 입력하세요.") ?? "";
       if (!passphrase) {
         showToast("비밀번호가 필요합니다.", "error");
+        setIsLoading(false);
         return;
       }
 
@@ -239,11 +253,24 @@ export function App({ fullscreenOnly = false }: AppProps) {
       } catch (error) {
         console.error(error);
         showToast("공유된 텍스트를 해독할 수 없습니다.", "error");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     void load();
   }, [fullscreenOnly, showToast]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+          <p className="text-white/60 animate-pulse">Loading shared content...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col">
