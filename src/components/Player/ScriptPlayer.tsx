@@ -210,7 +210,7 @@ export function ScriptPlayer({
             className={cn(
               "font-semibold leading-tight whitespace-pre-wrap break-words text-balance",
               "drop-shadow-[0_15px_35px_rgba(0,0,0,0.45)]",
-              "max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar",
+              "max-h-[80vh] overflow-y-auto pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
               fontSizeClasses[activeSettings.fontSize ?? "md"],
               resolveAnimationStyle(activeSlide.punctuation, activeSettings.animationStyle),
             )}

@@ -109,7 +109,7 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
   return (
     <>
       <div className="fixed inset-0 z-20" onClick={onClose} aria-hidden="true" />
-      <aside className="fixed right-4 top-24 w-80 bg-neutral-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-30 animate-in slide-in-from-right-10 fade-in duration-200">
+      <aside className="fixed right-4 top-52 w-80 max-h-[calc(100vh-220px)] overflow-y-auto bg-neutral-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-30 animate-in slide-in-from-right-10 fade-in duration-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">Slide {slide.id.slice(0, 4)}</p>
