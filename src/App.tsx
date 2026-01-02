@@ -12,6 +12,9 @@ import type { Slide, SlideSettings } from "@/types/slides";
 import { RefreshCcw } from "lucide-react";
 import { encryptText, decryptText } from "@/lib/share";
 import { nanoid } from "nanoid";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { X, Copy, Check, Link as LinkIcon } from "lucide-react";
 
 const STARTER_TEXT = `이 서비스는 텍스트만 입력해도 프레젠테이션을 만들어 줘요.
 원하는 내용을 적고 줄바꿈으로 슬라이드를 나눠 보세요.
@@ -38,6 +41,8 @@ export function App({ fullscreenOnly = false }: AppProps) {
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const [isSharedView, setIsSharedView] = useState(hasSharedData);
   const [isLoading, setIsLoading] = useState(hasSharedData);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -211,20 +216,26 @@ export function App({ fullscreenOnly = false }: AppProps) {
       const url = new URL(window.location.href);
       url.pathname = "/fullscreen";
       url.searchParams.set("data", encrypted);
-      const shareUrl = `${url.toString()}#key=${encodeURIComponent(passphrase)}`;
+      const generatedUrl = `${url.toString()}#key=${encodeURIComponent(passphrase)}`;
 
-      const copied = await copyToClipboard(shareUrl);
-      if (!copied) {
-        showToast("클립보드에 복사하지 못했습니다.", "error");
-        return;
-      }
-
-      showToast("전체화면 공유 링크를 클립보드에 복사했습니다.");
+      setShareUrl(generatedUrl);
+      setIsShareModalOpen(true);
     } catch (error) {
       console.error(error);
       showToast("링크를 만들지 못했습니다.", "error");
     }
-  }, [copyToClipboard, rawText, slides, slideSettings, showToast]);
+  }, [rawText, slides, slideSettings, showToast]);
+
+  const handleCopyLink = useCallback(async () => {
+    if (!shareUrl) return;
+    const copied = await copyToClipboard(shareUrl);
+    if (copied) {
+      showToast("링크가 복사되었습니다.");
+      setIsShareModalOpen(false);
+    } else {
+      showToast("복사 실패. 링크를 직접 복사해주세요.", "error");
+    }
+  }, [shareUrl, copyToClipboard, showToast]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -406,6 +417,51 @@ export function App({ fullscreenOnly = false }: AppProps) {
           aria-live="polite"
         >
           {toast.message}
+        </div>
+      )}
+
+      {isShareModalOpen && shareUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-md bg-neutral-900 border-neutral-800 text-white shadow-2xl">
+            <CardContent className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <LinkIcon className="w-5 h-5 text-emerald-400" />
+                    공유 링크 생성 완료
+                  </h3>
+                  <p className="text-sm text-neutral-400">
+                    아래 링크를 복사해서 공유하세요.
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-neutral-400 hover:text-white hover:bg-white/10 -mt-2 -mr-2"
+                  onClick={() => setIsShareModalOpen(false)}
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="share-link" className="sr-only">공유 링크</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="share-link"
+                    readOnly
+                    value={shareUrl}
+                    className="bg-black/50 border-neutral-700 focus-visible:ring-emerald-500 font-mono text-xs"
+                    onClick={(e) => e.currentTarget.select()}
+                  />
+                  <Button onClick={handleCopyLink} className="bg-white text-black hover:bg-neutral-200 shrink-0">
+                    <Copy className="w-4 h-4 mr-2" />
+                    복사
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
