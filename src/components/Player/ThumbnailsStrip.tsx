@@ -14,20 +14,28 @@ interface ThumbnailsStripProps {
  */
 export function ThumbnailsStrip({ slides, currentIndex, onSelect, onOpenSettings }: ThumbnailsStripProps) {
   return (
-    <div className="w-full border-b border-white/10 bg-black/60 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-3 overflow-x-auto relative z-40">
+    <div className="w-full h-32 flex items-center border-b border-white/10 bg-black/60 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-3 overflow-x-auto relative z-40">
       <div className="flex gap-2 sm:gap-3 min-w-full">
         {slides.length === 0 && <p className="text-sm text-white/60">Add text to see slides.</p>}
         {slides.map((slide, idx) => {
           const isActive = idx === currentIndex;
           return (
-            <button
+            <div
               key={slide.id}
+              role="button"
+              tabIndex={0}
               className={cn(
-                "group relative rounded-lg border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5",
+                "group relative rounded-lg border px-3 py-2 text-left shadow-sm transition hover:-translate-y-0.5 cursor-pointer",
                 "border-white/10 bg-white/5 min-w-[180px] sm:min-w-[200px]",
                 isActive && "ring-2 ring-white border-white/30",
               )}
               onClick={() => onSelect(idx)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(idx);
+                }
+              }}
               onDoubleClick={() => onOpenSettings(slide.id)}
             >
               <div className="text-[10px] uppercase tracking-[0.2em] text-white/50">{idx + 1}</div>
@@ -43,7 +51,7 @@ export function ThumbnailsStrip({ slides, currentIndex, onSelect, onOpenSettings
               >
                 ⚙️
               </Button>
-            </button>
+            </div>
           );
         })}
       </div>
