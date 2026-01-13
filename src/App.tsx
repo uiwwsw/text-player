@@ -11,10 +11,10 @@ import { parseTextToSlides } from "@/lib/parseTextToSlides";
 import type { Slide, SlideSettings } from "@/types/slides";
 import { RefreshCcw } from "lucide-react";
 import { encryptText, decryptText } from "@/lib/share";
-import { nanoid } from "nanoid";
+import LZString from "lz-string";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Copy, Check, Link as LinkIcon } from "lucide-react";
+import { X, Copy, Link as LinkIcon } from "lucide-react";
 
 const STARTER_TEXT = `이 서비스는 텍스트만 입력해도 프레젠테이션을 만들어 줘요.
 원하는 내용을 적고 줄바꿈으로 슬라이드를 나눠 보세요.
@@ -28,7 +28,7 @@ interface AppProps {
 export function App({ fullscreenOnly = false }: AppProps) {
   // Check for shared data in URL immediately to prevent flash of default content
   const searchParams = new URLSearchParams(window.location.search);
-  const hasSharedData = searchParams.has("data");
+  const hasSharedData = searchParams.has("data") || searchParams.has("d");
 
   const [rawText, setRawText] = useState<string>(hasSharedData ? "" : STARTER_TEXT);
   const [slides, setSlides] = useState<Slide[]>(() => hasSharedData ? [] : parseTextToSlides(STARTER_TEXT));
@@ -43,6 +43,10 @@ export function App({ fullscreenOnly = false }: AppProps) {
   const [isLoading, setIsLoading] = useState(hasSharedData);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareStep, setShareStep] = useState<"config" | "result">("config");
+  const [sharePassphrase, setSharePassphrase] = useState<string>("");
+  const [shareIsEncrypted, setShareIsEncrypted] = useState<boolean>(false);
+  const [isGeneratingShare, setIsGeneratingShare] = useState<boolean>(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -116,8 +120,18 @@ export function App({ fullscreenOnly = false }: AppProps) {
   }, []);
 
   const handleTransform = () => {
-    const parsed = parseTextToSlides(rawText);
+    const parsed = parseTextToSlides(rawText, slides);
     setSlides(parsed);
+    setSlideSettings(prev => {
+      const nextIds = new Set(parsed.map(s => s.id));
+      const next: Record<string, SlideSettings> = {};
+      for (const [id, values] of Object.entries(prev)) {
+        if (nextIds.has(id)) {
+          next[id] = values;
+        }
+      }
+      return next;
+    });
     setCurrentIndex(0);
     setIsPlaying(true);
     setMode("play");
@@ -130,7 +144,19 @@ export function App({ fullscreenOnly = false }: AppProps) {
     setIsPlaying(false);
     setSettingsTarget(null);
     setCurrentIndex(0);
-    setSlides(parseTextToSlides(rawText));
+
+    const parsed = parseTextToSlides(rawText, slides);
+    setSlides(parsed);
+    setSlideSettings(prev => {
+      const nextIds = new Set(parsed.map(s => s.id));
+      const next: Record<string, SlideSettings> = {};
+      for (const [id, values] of Object.entries(prev)) {
+        if (nextIds.has(id)) {
+          next[id] = values;
+        }
+      }
+      return next;
+    });
 
     if (window.location.search || window.location.hash) {
       const url = new URL(window.location.href);
@@ -175,14 +201,28 @@ export function App({ fullscreenOnly = false }: AppProps) {
   }, [settingsTarget]);
 
   const handleSettingsChange = (id: string, values: SlideSettings) => {
-    setSlideSettings(prev => ({ ...prev, [id]: { ...prev[id], ...values } }));
+    setSlideSettings(prev => {
+      const current = prev[id] ?? {};
+      const next: SlideSettings = { ...current, ...values };
+
+      for (const key of Object.keys(next) as (keyof SlideSettings)[]) {
+        if (next[key] === undefined) {
+          delete next[key];
+        }
+      }
+
+      if (Object.keys(next).length === 0) {
+        const { [id]: _removed, ...rest } = prev;
+        return rest;
+      }
+
+      return { ...prev, [id]: next };
+    });
   };
 
-  const handleSettingsApply = (values: SlideSettings) => {
+  const handleSettingsUpdateFromPanel = (values: SlideSettings) => {
     if (!settingsTarget) return;
     handleSettingsChange(settingsTarget, values);
-    showToast("슬라이드 설정을 적용했습니다.");
-    setSettingsTarget(null);
   };
 
   const handleSelectSlide = (index: number) => {
@@ -193,97 +233,214 @@ export function App({ fullscreenOnly = false }: AppProps) {
     }
   };
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     if (!rawText.trim()) {
       showToast("공유할 텍스트가 없습니다.", "error");
       return;
     }
 
-    try {
-      const suggestedKey = nanoid(8);
-      const input = window.prompt("공유용 비밀번호를 입력하세요. 비워두면 자동 생성됩니다.", suggestedKey);
-      if (input === null) return;
-      const passphrase = (input?.trim() ?? "") || suggestedKey;
+    setShareStep("config");
+    setSharePassphrase("");
+    setShareIsEncrypted(false);
+    setShareUrl(null);
+    setIsShareModalOpen(true);
+  }, [rawText, showToast]);
 
-      // Wrap slides and settings in a JSON object to preserve IDs
+  const generateShareLink = useCallback(async () => {
+    if (!rawText.trim()) {
+      showToast("공유할 텍스트가 없습니다.", "error");
+      return;
+    }
+
+    setIsGeneratingShare(true);
+    try {
+      const slidesForShare = parseTextToSlides(rawText, slides);
+
+      const compactSettings: Array<[number, Record<string, unknown>]> = [];
+      for (let i = 0; i < slidesForShare.length; i += 1) {
+        const slide = slidesForShare[i];
+        const settings = slideSettings[slide.id];
+        if (!settings) continue;
+
+        const entry: Record<string, unknown> = {};
+        if (settings.duration !== undefined) entry.d = settings.duration;
+        if (settings.bgColor) entry.b = settings.bgColor;
+        if (settings.textColor) entry.c = settings.textColor;
+        if (settings.fontSize) entry.f = settings.fontSize;
+        if (settings.animationStyle) entry.a = settings.animationStyle;
+
+        if (Object.keys(entry).length > 0) {
+          compactSettings.push([i, entry]);
+        }
+      }
+
       const payload = JSON.stringify({
-        text: rawText, // Keep text for backward compat or easy editor restore
-        slides: slides, // Crucial: Share the ACTUAL slides with IDs
-        settings: slideSettings,
+        v: 2,
+        t: rawText,
+        s: compactSettings.length > 0 ? compactSettings : undefined,
       });
 
-      const encrypted = await encryptText(payload, passphrase);
+      const compressed = LZString.compressToEncodedURIComponent(payload);
+      const passphrase = sharePassphrase.trim();
+      const isEncrypted = passphrase.length > 0;
+
       const url = new URL(window.location.href);
       url.pathname = "/fullscreen";
-      url.searchParams.set("data", encrypted);
-      const generatedUrl = `${url.toString()}#key=${encodeURIComponent(passphrase)}`;
+      url.search = "";
+      url.hash = "";
 
-      setShareUrl(generatedUrl);
-      setIsShareModalOpen(true);
+      if (isEncrypted) {
+        const encrypted = await encryptText(compressed, passphrase);
+        url.searchParams.set("d", encrypted);
+        url.searchParams.set("e", "1");
+      } else {
+        url.searchParams.set("d", compressed);
+      }
+
+      setShareIsEncrypted(isEncrypted);
+      setShareUrl(url.toString());
+      setShareStep("result");
     } catch (error) {
       console.error(error);
       showToast("링크를 만들지 못했습니다.", "error");
+    } finally {
+      setIsGeneratingShare(false);
     }
-  }, [rawText, slides, slideSettings, showToast]);
+  }, [rawText, slides, slideSettings, sharePassphrase, showToast]);
+
+  const closeShareModal = useCallback(() => {
+    setIsShareModalOpen(false);
+    setShareStep("config");
+    setSharePassphrase("");
+    setShareIsEncrypted(false);
+    setShareUrl(null);
+    setIsGeneratingShare(false);
+  }, []);
 
   const handleCopyLink = useCallback(async () => {
     if (!shareUrl) return;
     const copied = await copyToClipboard(shareUrl);
     if (copied) {
       showToast("링크가 복사되었습니다.");
-      setIsShareModalOpen(false);
+      closeShareModal();
     } else {
       showToast("복사 실패. 링크를 직접 복사해주세요.", "error");
     }
-  }, [shareUrl, copyToClipboard, showToast]);
+  }, [shareUrl, copyToClipboard, showToast, closeShareModal]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const encoded = params.get("data");
-    if (!encoded) return;
+    const v2Data = params.get("d");
+    const legacyData = params.get("data");
+    if (!v2Data && !legacyData) return;
 
     setIsSharedView(true);
     setIsLoading(true);
 
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const providedKey = hashParams.get("key");
-
     const load = async () => {
-      // Small delay to ensure UI renders loading state if decryption is instant
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const passphrase = providedKey ?? window.prompt("공유된 텍스트가 암호화되어 있습니다. 비밀번호를 입력하세요.") ?? "";
-      if (!passphrase) {
-        showToast("비밀번호가 필요합니다.", "error");
-        setIsLoading(false);
-        return;
-      }
+      // Small delay to ensure UI renders loading state
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       try {
+        // v2 format: /?d=...(&e=1)
+        if (v2Data) {
+          const isEncrypted = params.get("e") === "1";
+          let compressed = v2Data;
+
+          if (isEncrypted) {
+            const passphrase = window.prompt("이 링크는 비밀번호로 보호되어 있어요. 비밀번호를 입력하세요.") ?? "";
+            if (!passphrase) {
+              showToast("비밀번호가 필요합니다.", "error");
+              return;
+            }
+            compressed = await decryptText(v2Data, passphrase);
+          }
+
+          const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+          if (!decompressed) {
+            throw new Error("Failed to decompress shared payload");
+          }
+
+          const payload = JSON.parse(decompressed) as any;
+          if (payload?.v === 2 && typeof payload.t === "string") {
+            const textToParse = payload.t as string;
+            const parsed = parseTextToSlides(textToParse);
+            setSlides(parsed);
+            setRawText(textToParse);
+
+            const settingsToApply: Record<string, SlideSettings> = {};
+            if (Array.isArray(payload.s)) {
+              for (const item of payload.s) {
+                if (!Array.isArray(item) || item.length !== 2) continue;
+                const index = item[0];
+                const entry = item[1] as any;
+                if (typeof index !== "number") continue;
+
+                const slide = parsed[index];
+                if (!slide) continue;
+
+                const next: SlideSettings = {};
+                if (typeof entry?.d === "number") next.duration = entry.d;
+                if (typeof entry?.b === "string" && entry.b) next.bgColor = entry.b;
+                if (typeof entry?.c === "string" && entry.c) next.textColor = entry.c;
+                if (entry?.f === "sm" || entry?.f === "md" || entry?.f === "lg" || entry?.f === "xl") next.fontSize = entry.f;
+                if (typeof entry?.a === "string") next.animationStyle = entry.a as SlideSettings["animationStyle"];
+
+                if (Object.keys(next).length > 0) {
+                  settingsToApply[slide.id] = next;
+                }
+              }
+            }
+
+            setSlideSettings(settingsToApply);
+            setCurrentIndex(0);
+            setMode(fullscreenOnly ? "play" : "edit");
+            setIsPlaying(fullscreenOnly);
+            showToast("공유된 텍스트를 불러왔습니다.");
+            return;
+          }
+
+          // Fallback: treat decompressed as raw text
+          const parsed = parseTextToSlides(decompressed);
+          setSlides(parsed);
+          setRawText(decompressed);
+          setSlideSettings({});
+          setCurrentIndex(0);
+          setMode(fullscreenOnly ? "play" : "edit");
+          setIsPlaying(fullscreenOnly);
+          showToast("공유된 텍스트를 불러왔습니다.");
+          return;
+        }
+
+        // Legacy format: /?data=...#key=...
+        const encoded = legacyData!;
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const providedKey = hashParams.get("key");
+
+        const passphrase = providedKey ?? window.prompt("공유된 텍스트가 암호화되어 있습니다. 비밀번호를 입력하세요.") ?? "";
+        if (!passphrase) {
+          showToast("비밀번호가 필요합니다.", "error");
+          return;
+        }
+
         const decrypted = await decryptText(encoded, passphrase);
 
         let textToParse = decrypted;
         let settingsToApply = {};
         let slidesToUse: Slide[] | null = null;
 
-        // Try to parse as JSON
         try {
           const payload = JSON.parse(decrypted);
 
-          // Case 1: Newest format (Includes slides with IDs)
           if (payload.slides && Array.isArray(payload.slides)) {
             slidesToUse = payload.slides;
-            textToParse = payload.text || slidesToUse.map(s => s.text).join("\n");
+            textToParse = payload.text || slidesToUse.map((s: any) => s.text).join("\n");
             settingsToApply = payload.settings || {};
-          }
-          // Case 2: Intermediate format (Text + Settings only)
-          else if (payload.text) {
+          } else if (payload.text) {
             textToParse = payload.text;
             settingsToApply = payload.settings || {};
           }
         } catch (e) {
-          // Case 3: Legacy format (Raw string)
-          console.log("Legacy shared link detected");
           textToParse = decrypted;
         }
 
@@ -302,7 +459,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
         showToast("공유된 텍스트를 불러왔습니다.");
       } catch (error) {
         console.error(error);
-        showToast("공유된 텍스트를 해독할 수 없습니다.", "error");
+        showToast("공유된 텍스트를 불러올 수 없습니다.", "error");
       } finally {
         setIsLoading(false);
       }
@@ -401,7 +558,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
           slide={activeSlide?.id === settingsTarget ? activeSlide : slides.find(s => s.id === settingsTarget) ?? null}
           settings={settingsTarget ? slideSettings[settingsTarget] : undefined}
           onClose={() => setSettingsTarget(null)}
-          onUpdate={handleSettingsApply}
+          onUpdate={handleSettingsUpdateFromPanel}
         />
       )}
 
@@ -420,7 +577,7 @@ export function App({ fullscreenOnly = false }: AppProps) {
         </div>
       )}
 
-      {isShareModalOpen && shareUrl && (
+      {isShareModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <Card className="w-full max-w-md bg-neutral-900 border-neutral-800 text-white shadow-2xl">
             <CardContent className="p-6 space-y-6">
@@ -428,38 +585,107 @@ export function App({ fullscreenOnly = false }: AppProps) {
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <LinkIcon className="w-5 h-5 text-emerald-400" />
-                    공유 링크 생성 완료
+                    {shareStep === "config" ? "공유 링크 만들기" : "공유 링크 생성 완료"}
                   </h3>
                   <p className="text-sm text-neutral-400">
-                    아래 링크를 복사해서 공유하세요.
+                    {shareStep === "config" ? "비밀번호는 선택 사항입니다." : "아래 링크를 복사해서 공유하세요."}
                   </p>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="text-neutral-400 hover:text-white hover:bg-white/10 -mt-2 -mr-2"
-                  onClick={() => setIsShareModalOpen(false)}
+                  onClick={closeShareModal}
                 >
                   <X className="w-5 h-5" />
                 </Button>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="share-link" className="sr-only">공유 링크</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="share-link"
-                    readOnly
-                    value={shareUrl}
-                    className="bg-black/50 border-neutral-700 focus-visible:ring-emerald-500 font-mono text-xs"
-                    onClick={(e) => e.currentTarget.select()}
-                  />
-                  <Button onClick={handleCopyLink} className="bg-white text-black hover:bg-neutral-200 shrink-0">
-                    <Copy className="w-4 h-4 mr-2" />
-                    복사
-                  </Button>
+              {shareStep === "config" ? (
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="share-passphrase" className="text-white/80">비밀번호 (선택)</Label>
+                    <Input
+                      id="share-passphrase"
+                      type="password"
+                      value={sharePassphrase}
+                      onChange={(e) => setSharePassphrase(e.target.value)}
+                      placeholder="비워두면 비밀번호 없이 열 수 있어요"
+                      className="bg-black/50 border-neutral-700 focus-visible:ring-emerald-500"
+                    />
+                    <p className="text-xs text-neutral-400 leading-relaxed">
+                      비밀번호를 입력하면 링크가 암호화됩니다. 비워두면 비밀번호 없이도 열 수 있는 공개 링크로 생성됩니다.
+                      <br />
+                      보안을 위해 비밀번호는 링크에 포함되지 않습니다. (열 때 입력)
+                      <br />
+                      비밀번호를 잊으면 복구할 수 없습니다.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="flex-1 bg-white/10 text-white hover:bg-white/15"
+                      onClick={closeShareModal}
+                    >
+                      취소
+                    </Button>
+                    <Button
+                      className="flex-1 bg-white text-black hover:bg-neutral-200"
+                      onClick={generateShareLink}
+                      disabled={isGeneratingShare}
+                    >
+                      {isGeneratingShare ? "생성 중..." : "링크 생성"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-neutral-400">
+                    {shareIsEncrypted
+                      ? "이 링크는 비밀번호로 보호됩니다. 공유받은 사람이 열 때 비밀번호를 입력합니다."
+                      : "이 링크는 비밀번호 없이 열 수 있는 공개 링크입니다."}
+                  </p>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="share-link" className="sr-only">공유 링크</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="share-link"
+                        readOnly
+                        value={shareUrl ?? ""}
+                        className="bg-black/50 border-neutral-700 focus-visible:ring-emerald-500 font-mono text-xs"
+                        onClick={(e) => e.currentTarget.select()}
+                      />
+                      <Button
+                        onClick={handleCopyLink}
+                        className="bg-white text-black hover:bg-neutral-200 shrink-0"
+                        disabled={!shareUrl}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        복사
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      className="text-neutral-300 hover:text-white"
+                      onClick={() => setShareStep("config")}
+                    >
+                      비밀번호 다시 설정
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="text-neutral-300 hover:text-white"
+                      onClick={closeShareModal}
+                    >
+                      닫기
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

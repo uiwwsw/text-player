@@ -52,9 +52,11 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
     resolver: zodResolver(settingsSchema),
     mode: "onChange",
     defaultValues: {
-      duration: String((settings?.duration ?? slide?.baseDuration ?? 1000) / 1000), // Convert ms to s
-      bgColor: settings?.bgColor ?? PRESET_THEMES[0].bg,
-      textColor: settings?.textColor ?? PRESET_THEMES[0].text,
+      duration: settings?.duration === undefined
+        ? "__auto__"
+        : String(((settings.duration ?? 1000)) / 1000),
+      bgColor: settings?.bgColor ?? "",
+      textColor: settings?.textColor ?? "",
       fontSize: settings?.fontSize ?? "md",
       animationStyle: settings?.animationStyle ?? "auto",
     },
@@ -64,12 +66,11 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
     if (!slide) return;
     const currentDuration = settings?.duration ?? slide.baseDuration;
 
-    // Find matching theme or default to custom if not found, but we only have presets now so default to first
-    const currentBg = settings?.bgColor ?? PRESET_THEMES[0].bg;
-    const currentText = settings?.textColor ?? PRESET_THEMES[0].text;
+    const currentBg = settings?.bgColor ?? "";
+    const currentText = settings?.textColor ?? "";
 
     form.reset({
-      duration: String(currentDuration / 1000),
+      duration: settings?.duration === undefined ? "__auto__" : String(currentDuration / 1000),
       bgColor: currentBg,
       textColor: currentText,
       fontSize: settings?.fontSize ?? "md",
@@ -77,32 +78,53 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
     });
   }, [slide?.id, slide?.baseDuration, settings, form]);
 
-  const onSubmit = (data: SettingsFormValues) => {
-    onUpdate({
-      duration: Number(data.duration) * 1000, // Convert s to ms
-      bgColor: data.bgColor,
-      textColor: data.textColor,
-      fontSize: data.fontSize as SlideSettings["fontSize"],
-      animationStyle: data.animationStyle === "auto" ? undefined : (data.animationStyle as SlideSettings["animationStyle"]),
-    });
-    // Don't close immediately to allow tweaking
-  };
-
   // Watch for changes to auto-submit (live preview)
   useEffect(() => {
     const subscription = form.watch((value) => {
-      if (value.duration && value.bgColor && value.textColor && value.fontSize) {
-        onUpdate({
-          duration: Number(value.duration) * 1000,
-          bgColor: value.bgColor,
-          textColor: value.textColor,
-          fontSize: value.fontSize as SlideSettings["fontSize"],
-          animationStyle: value.animationStyle === "auto" ? undefined : (value.animationStyle as SlideSettings["animationStyle"]),
-        });
+      if (!slide) return;
+
+      const baseDuration = slide.baseDuration;
+
+      const durationMs = value.duration === "__auto__"
+        ? undefined
+        : Math.round(Number(value.duration) * 1000);
+
+      const nextDuration =
+        durationMs === undefined || !Number.isFinite(durationMs) || durationMs === baseDuration
+          ? undefined
+          : durationMs;
+
+      const next: SlideSettings = {
+        duration: nextDuration,
+        bgColor: value.bgColor ? value.bgColor : undefined,
+        textColor: value.textColor ? value.textColor : undefined,
+        fontSize: value.fontSize === "md" ? undefined : (value.fontSize as SlideSettings["fontSize"]),
+        animationStyle: value.animationStyle === "auto" ? undefined : (value.animationStyle as SlideSettings["animationStyle"]),
+      };
+
+      const currentDuration = settings?.duration;
+      const current: SlideSettings = {
+        duration: currentDuration === undefined || currentDuration === baseDuration ? undefined : currentDuration,
+        bgColor: settings?.bgColor ? settings.bgColor : undefined,
+        textColor: settings?.textColor ? settings.textColor : undefined,
+        fontSize: settings?.fontSize === "md" ? undefined : settings?.fontSize,
+        animationStyle: settings?.animationStyle,
+      };
+
+      if (
+        current.duration === next.duration &&
+        current.bgColor === next.bgColor &&
+        current.textColor === next.textColor &&
+        current.fontSize === next.fontSize &&
+        current.animationStyle === next.animationStyle
+      ) {
+        return;
       }
+
+      onUpdate(next);
     });
     return () => subscription.unsubscribe();
-  }, [form, onUpdate]);
+  }, [form, onUpdate, slide, settings]);
 
   if (!slide) return null;
 
@@ -126,28 +148,52 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
             <Controller
               control={form.control}
               name="duration"
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-neutral-900 border-white/10 text-white">
-                    {[0.5, 1, 1.5, 2, 3, 4, 5, 7, 10, 15, 20].map((sec) => (
-                      <SelectItem key={sec} value={String(sec)}>
-                        {sec} Seconds
+              render={({ field }) => {
+                const options = [0.5, 1, 1.5, 2, 3, 4, 5, 7, 10, 15, 20];
+                const baseSec = Math.round((slide.baseDuration / 1000) * 100) / 100;
+                const baseSecValue = String(baseSec);
+                const isAuto = field.value === "__auto__";
+
+                const optionValues = new Set(options.map(sec => String(sec)));
+                const hasCustomValue = !isAuto && field.value && !optionValues.has(field.value);
+
+                return (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-neutral-900 border-white/10 text-white">
+                      <SelectItem value="__auto__">
+                        Auto (Default: {baseSecValue}s)
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+                      {hasCustomValue && (
+                        <SelectItem value={field.value}>
+                          Custom ({field.value}s)
+                        </SelectItem>
+                      )}
+                      {options.map((sec) => (
+                        <SelectItem key={sec} value={String(sec)}>
+                          {sec} Seconds
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              }}
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-white/80">Theme</Label>
             <Select
-              value={form.watch("bgColor")}
+              value={form.watch("bgColor") ? form.watch("bgColor") : "__auto__"}
               onValueChange={(val) => {
+                if (val === "__auto__") {
+                  form.setValue("bgColor", "");
+                  form.setValue("textColor", "");
+                  return;
+                }
+
                 const theme = PRESET_THEMES.find(t => t.bg === val);
                 if (theme) {
                   form.setValue("bgColor", theme.bg);
@@ -159,6 +205,9 @@ export function SlideSettingsPanel({ slide, settings, onUpdate, onClose }: Slide
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
               <SelectContent className="bg-neutral-900 border-white/10 text-white">
+                <SelectItem value="__auto__">
+                  <span>Auto (Default)</span>
+                </SelectItem>
                 {PRESET_THEMES.map((theme) => (
                   <SelectItem key={theme.bg} value={theme.bg}>
                     <div className="flex items-center gap-2">
